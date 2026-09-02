@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+/*
+  ProjectTracker — tasarım temeli (design tokens)
+  Yön: "yapım günlüğü / atölye defteri". Uygulama, ROADMAP.md içindeki
+  - [x] / - [ ] kutularından ilerleme sayar; arayüz de bu kutu/defter
+  dilini taşır. Tek renk modu (aydınlık); tipografi sistem yazı tipleriyle
+  (bu bir yerel masaüstü aracı, internetsiz de açılmalı).
+*/
+@theme {
+  --color-paper: #f4f5f2;
+  --color-panel: #fbfbf9;
+  --color-ink: #1b2320;
+  --color-ink-soft: #616a64;
+  --color-rule: #ddded8;
+  --color-done: #2f6d4e;
+  --color-active: #b96a2b;
+  --color-planned: #9aa09a;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --radius-sm: 3px;
+  --radius-md: 5px;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Yapı öğeleri (başlık üstü etiketler, sayaçlar, dosya adları) mono. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-done);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

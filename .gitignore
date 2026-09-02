@@ -1,0 +1,39 @@
+# --- Takım yapılandırması (yerel — repoya girmez) ---
+.claude/
+/CLAUDE.md
+
+# --- macOS ---
+.DS_Store
+
+# --- Java / Maven (backend) ---
+backend/target/
+*.class
+
+# --- H2 veritabanı dosyaları (dosya modu) ---
+*.mv.db
+*.trace.db
+data/
+
+# --- Frontend build çıktısı ---
+# React derlenince backend içindeki static klasörüne kopyalanır; kaynak değil, üretilmiş dosya.
+backend/src/main/resources/static/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- Loglar / ortam dosyaları ---
+*.log
+.env
+.env.local
+
+# --- jpackage çıktısı ---
+/dist/
+*.app

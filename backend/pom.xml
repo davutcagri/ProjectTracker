@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.1</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>projectTracker</groupId>
+	<artifactId>backend</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name/>
+	<description/>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+
+		<!-- Frontend build entegrasyonu (SCOPE §10) -->
+		<!-- frontend-maven-plugin'in indireceği Node/npm sürümü. Yerel geliştirme
+		     ortamıyla (Node 26.8.1 / npm 11.19.0) birebir aynı tutuldu ki
+		     "bende çalışıyordu" durumu yaşanmasın. -->
+		<node.version>v26.8.1</node.version>
+		<npm.version>11.19.0</npm.version>
+		<frontend-maven-plugin.version>1.15.1</frontend-maven-plugin.version>
+		<!-- frontend/ klasörünün pom.xml'e göre konumu -->
+		<frontend.dir>${project.basedir}/../frontend</frontend.dir>
+		<!-- true yapılırsa (ör. ./mvnw package -Dfrontend.skip=true) frontend
+		     derlemesi tamamen atlanır; sadece backend paketlenir. -->
+		<frontend.skip>false</frontend.skip>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-h2console</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit</artifactId>
+			<version>7.7.1.202607240634-r</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<!-- ============================================================
+			     frontend-maven-plugin: React (Vite) projesini Maven build'i
+			     içinde derler. Node/npm'i makineye kurmaya gerek yok; plugin
+			     sabit sürümü indirip backend/target altında tutar.
+			     Tüm adımlar "prepare-package" fazına bağlı; bu faz yalnızca
+			     "./mvnw package" ile çalışır. "./mvnw spring-boot:run" en fazla
+			     "test-compile" fazına kadar ilerlediği için geliştirme sırasında
+			     yavaş npm build TETİKLENMEZ.
+			     ============================================================ -->
+			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>${frontend-maven-plugin.version}</version>
+
+				<configuration>
+					<!-- npm komutlarının çalışacağı dizin -->
+					<workingDirectory>${frontend.dir}</workingDirectory>
+					<!-- İndirilen node/npm buraya açılır (backend/target -> .gitignore'da) -->
+					<installDirectory>${project.build.directory}</installDirectory>
+					<skip>${frontend.skip}</skip>
+				</configuration>
+
+				<executions>
+					<!-- 1) Node + npm'i indir (sadece ilk sefer; sonra cache'lenir) -->
+					<execution>
+						<id>install-node-and-npm</id>
+						<goals>
+							<goal>install-node-and-npm</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<nodeVersion>${node.version}</nodeVersion>
+							<npmVersion>${npm.version}</npmVersion>
+						</configuration>
+					</execution>
+
+					<!-- 2) Bağımlılıkları kur (package-lock.json'a birebir sadık) -->
+					<execution>
+						<id>npm-ci</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<arguments>ci</arguments>
+						</configuration>
+					</execution>
+
+					<!-- 3) Production build -> frontend/dist/ üretir -->
+					<execution>
+						<id>npm-run-build</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<arguments>run build</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- ============================================================
+			     maven-resources-plugin: frontend/dist/ içeriğini derlenmiş
+			     sınıfların yanındaki static/ klasörüne kopyalar. Hedef
+			     target/classes/static olduğu için kaynak ağacı (src/main/...)
+			     kirlenmez; jar paketlenirken bu dosyalar otomatik jar'a girer.
+			     "prepare-package" fazında ve POM'da frontend-maven-plugin'den
+			     SONRA tanımlı olduğu için build çıktısı hazır olduktan sonra çalışır.
+			     ============================================================ -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-frontend-dist-to-static</id>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<phase>prepare-package</phase>
+						<configuration>
+							<skip>${frontend.skip}</skip>
+							<outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+							<overwrite>true</overwrite>
+							<resources>
+								<resource>
+									<directory>${frontend.dir}/dist</directory>
+									<filtering>false</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
