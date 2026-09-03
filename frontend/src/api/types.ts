@@ -3,6 +3,36 @@
   hazır olmadığı için bunlar taslaktır; gerçek yanıtlar bağlanınca güncellenecek.
 */
 
+/* ------------------------------------------------------------------ *
+ * M1 — GET /api/projects gerçek sözleşmesi (backend hazır, doğrulandı)
+ * ------------------------------------------------------------------ */
+
+export type ProjectDocsStatus = 'UNKNOWN' | 'COMPLETE' | 'INCOMPLETE'
+
+/** Liste sayfasındaki bir proje kaydı (GET /api/projects dizisinin elemanı). */
+export interface ProjectListItem {
+  id: string
+  path: string
+  displayName: string
+  pinned: boolean
+  docsStatus: ProjectDocsStatus
+  lastScanAt: string
+}
+
+/* ------------------------------------------------------------------ *
+ * M1 — GET/PUT /api/settings gerçek sözleşmesi (backend hazır, doğrulandı)
+ * ------------------------------------------------------------------ */
+
+/** app_settings tek satırı — şimdilik yalnızca taranacak kök yol. */
+export interface Settings {
+  rootPath: string
+}
+
+/* ------------------------------------------------------------------ *
+ * M2 taslağı — aşağıdaki tipler doküman parse / detay sayfası içindir.
+ * Backend detay sözleşmesi bağlanınca güncellenecek. SİLME.
+ * ------------------------------------------------------------------ */
+
 export type DocsStatus = 'COMPLETE' | 'PARTIAL' | 'MISSING'
 
 /** Liste kartında gösterilen özet proje bilgisi (GET /api/projects). */
