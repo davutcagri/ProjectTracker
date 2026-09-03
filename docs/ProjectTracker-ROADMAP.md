@@ -22,14 +22,14 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 
 ## M1 — Proje keşfi ve liste
 
-- [ ] `app_settings` entity + tek satır seed (`root_path = ~/Documents/Projects`)
-- [ ] `project` entity + repository
-- [ ] Kök yol tarama servisi (birinci seviye alt klasörler, gizli olanlar hariç)
-- [ ] `POST /api/projects/scan` — yeni/silinen projeleri senkronla
-- [ ] Açılışta otomatik tarama (`ApplicationRunner`)
-- [ ] `GET /api/projects` — liste endpoint'i
-- [ ] Frontend: proje listesi sayfası + kartlar + "Projeleri Tara" butonu
-- [ ] Frontend: Ayarlar sayfası — kök yol düzenleme
+- [x] `app_settings` entity + tek satır seed (`root_path = ~/Documents/Projects`)
+- [x] `project` entity + repository
+- [x] Kök yol tarama servisi (birinci seviye alt klasörler, gizli olanlar hariç)
+- [x] `POST /api/projects/scan` — yeni/silinen projeleri senkronla
+- [x] Açılışta otomatik tarama (`ApplicationRunner`)
+- [x] `GET /api/projects` — liste endpoint'i
+- [x] Frontend: proje listesi sayfası + kartlar + "Projeleri Tara" butonu
+- [x] Frontend: Ayarlar sayfası — kök yol düzenleme
 
 ## M2 — Doküman parse ve detay
 

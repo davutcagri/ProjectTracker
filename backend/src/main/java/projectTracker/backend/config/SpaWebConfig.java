@@ -9,30 +9,6 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 
 import java.io.IOException;
 
-/**
- * SPA (React Router) fallback yapilandirmasi.
- *
- * <p>React Router client-side routing yapar: tarayicida gezinirken sunucuya hic
- * gidilmez. Ama kullanici adres cubuguna elle "/settings" yazip Enter'a basarsa
- * ya da o sayfadayken F5 yaparsa, tarayici gercekten "GET /settings" isteği
- * gonderir. Spring'de boyle bir yol olmadigi icin 404 doner ve beyaz ekran
- * olusur.
- *
- * <p>Bu sinif, statik dosya servis eden zincire ozel bir cozucu takar:
- * <ol>
- *   <li>Istenen yolda gercek bir dosya varsa (ornek: assets/index-*.js,
- *       favicon.ico) onu servis eder.</li>
- *   <li>Yol backend'e ait bir on ek ile basliyorsa (api/, h2-console/,
- *       swagger-ui/, v3/api-docs) null doner; boylece Spring duzgun bir 404
- *       uretir, SPA HTML'i sizmaz.</li>
- *   <li>Geri kalan her sey React uygulamasinin bir rotasi kabul edilir ve
- *       index.html dondurulur; index.html yuklenince React Router dogru sayfayi
- *       cizer.</li>
- * </ol>
- *
- * <p>Not: Bu fallback yalnizca paketlenmis jar calisirken (:8420) onemlidir.
- * Gelistirmede Vite dev server (:5173) kendi fallback'ini yapar.
- */
 @Configuration
 public class SpaWebConfig implements WebMvcConfigurer {
 

@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-02
+updated: 2026-09-03
 version: v1-mvp
 ---
 
@@ -53,7 +53,11 @@ yeniden hesaplanır (cache yok).
   Varsayılan: `~/Documents/Projects`.
 - **"Projeleri Tara"** (liste sayfası + uygulama açılışında otomatik): kök yolun
   birinci seviye alt klasörlerini okur. Gizli klasörler (`.` ile başlayan) hariç
-  her alt klasör bir projedir. Yeni klasörler eklenir, silinenler işaretlenir.
+  her alt klasör bir projedir. Kök klasörde yeni bulunan klasörler `project`
+  tablosuna eklenir; kök klasörde artık bulunmayan projelerin DB kaydı **silinir
+  (hard delete)** — "silinmiş" işareti / soft-delete yoktur.
+- **Not:** bir proje kök klasörden silinip sonra tekrar eklenirse, o projeye ait
+  `notes` ve `pinned` gibi portal alanları korunmaz; kayıt sıfırdan oluşturulur.
 - **Proje başına "Sync"** (her kartta): o projenin kök dizininde `README.md` /
   `SCOPE.md` / `ROADMAP.md` var mı bakar.
   - **Varsa:** içeriği parse edip kartı ve detay sayfasını günceller.
