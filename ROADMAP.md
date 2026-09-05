@@ -33,14 +33,15 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 
 ## M2 — Doküman parse ve detay
 
-- [ ] Markdown okuyucu: `README.md` / `SCOPE.md` / `ROADMAP.md` varlık + içerik
-- [ ] Frontmatter (`updated:`) parser
-- [ ] ROADMAP checkbox parser → milestone listesi + milestone/proje ilerleme %
-- [ ] `GET /api/projects/{id}` — render içerik + milestone'lar + ilerleme
-- [ ] `POST /api/projects/{id}/sync` — dosyalar varsa parse et
-- [ ] Frontend: detay sayfası (3 sekme + milestone listesi + ilerleme çubuğu)
-- [ ] Frontend: kartta ilerleme çubuğu + doküman rozetleri (README/SCOPE/ROADMAP)
-- [ ] `project.notes` — serbest not alanı (kaydet/oku)
+- [x] Markdown okuyucu: `README.md` / `SCOPE.md` / `ROADMAP.md` varlık + içerik
+- [x] ROADMAP checkbox parser → milestone listesi + milestone/proje ilerleme %
+- [x] `GET /api/projects/{id}` — render içerik + milestone'lar + ilerleme
+- [x] `POST /api/projects/{id}/sync` — dosyalar varsa parse et
+- [x] Frontend: detay sayfası (3 sekme + milestone listesi + ilerleme çubuğu)
+- [x] Frontend: kartta ilerleme çubuğu + doküman rozetleri (README/SCOPE/ROADMAP)
+      (MVP kararı 2026-09-05: üç ayrı rozet yerine tek birleşik doküman durumu
+      rozeti yeterli kabul edildi — bkz. SCOPE §8)
+- [x] `project.notes` — serbest not alanı (kaydet/oku)
 
 ## M3 — Git metadata (JGit)
 
@@ -102,6 +103,8 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 ## M8 — Opsiyonel / v2 adayları
 
 - [ ] Var olan `*.md` dosyalarını Claude ile güncelleme
+- [ ] Frontmatter (`updated:`) parser — dokümanın kendi beyan ettiği tazelik tarihi
+      (M2'den ertelendi 2026-09-04; v1'de M3 git tarihi / `.md` mtime yeterli sinyal)
 - [ ] Birden fazla kök yol
 - [ ] Canlı dosya izleme (WatchService)
 - [ ] Proje etiketleri / filtreleme / sıralama

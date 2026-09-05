@@ -1,22 +1,36 @@
 package projectTracker.backend.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import projectTracker.backend.dto.internal.Milestone;
+import projectTracker.backend.dto.internal.ProjectDocs;
+import projectTracker.backend.dto.request.NotesRequest;
+import projectTracker.backend.dto.response.ProjectDetailedResponse;
 import projectTracker.backend.dto.response.ProjectResponse;
-import projectTracker.backend.model.Project;
+import projectTracker.backend.model.entity.Project;
+import projectTracker.backend.model.enums.DocsStatus;
 import projectTracker.backend.repository.ProjectRepository;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
+@Slf4j
 @Service
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final ProjectDocsReader projectDocsReader;
+    private final RoadmapParser roadmapParser;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, ProjectDocsReader projectDocsReader, RoadmapParser roadmapParser) {
         this.projectRepository = projectRepository;
+        this.projectDocsReader = projectDocsReader;
+        this.roadmapParser = roadmapParser;
     }
 
     @Transactional
@@ -45,9 +59,50 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectResponse> getAllProjects() {
-        return projectRepository.findAll().stream()
-                .map(ProjectResponse::from)
-                .toList();
+    public List<ProjectResponse> getAllProjects() throws IOException {
+        List<Project> projects = projectRepository.findAll();
+        List<ProjectResponse> responses = new ArrayList<>();
+        for (Project project : projects) {
+            List<ProjectDocs> docs = projectDocsReader.readInnerFiles(Path.of(project.getPath()));
+            ProjectDocs roadmap = docs.stream().filter(d -> d.fileName().equals("ROADMAP.md")).findFirst().orElse(null);
+            Integer progress = roadmapParser.calculateProgress(roadmap == null ? null : roadmap.content());
+            responses.add(ProjectResponse.from(project, progress));
+        }
+        return responses;
+    }
+
+    public ProjectDetailedResponse getProjectById(String id) throws IOException {
+        Project project = projectRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Project not found"));
+        List<ProjectDocs> docs = projectDocsReader.readInnerFiles(Path.of(project.getPath()));
+
+        ProjectDocs roadmap = docs.stream().filter(d -> d.fileName().equals("ROADMAP.md")).findFirst().orElseThrow();
+        List<Milestone> milestones = roadmapParser.extractMilestones(roadmap.content());
+        int progress = roadmapParser.calculateProgress(roadmap.content());
+
+        return new ProjectDetailedResponse(project.getId(), project.getPath(), project.getDisplayName(), project.getNotes(), docs, progress, milestones, project.getLastScanAt());
+    }
+
+    @Transactional
+    public ProjectDetailedResponse syncProjectById(String id) throws IOException {
+        Project project = projectRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Project not found"));
+        List<ProjectDocs> docs = projectDocsReader.readInnerFiles(Path.of(project.getPath()));
+
+        DocsStatus docsStatus = docs.stream().allMatch(ProjectDocs::exists) ? DocsStatus.COMPLETE : DocsStatus.INCOMPLETE;
+        project.setDocsStatus(docsStatus);
+        projectRepository.save(project);
+
+        ProjectDocs roadmap = docs.stream().filter(d -> d.fileName().equals("ROADMAP.md")).findFirst().orElseThrow();
+        List<Milestone> milestones = roadmapParser.extractMilestones(roadmap.content());
+        int progress = roadmapParser.calculateProgress(roadmap.content());
+
+        return new ProjectDetailedResponse(project.getId(), project.getPath(), project.getDisplayName(), project.getNotes(), docs, progress, milestones, project.getLastScanAt());
+    }
+
+    @Transactional
+    public void updateNotes(String projectId, NotesRequest request) {
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new NoSuchElementException("Project not found"));
+        project.setNotes(request.notes());
+        projectRepository.save(project);
     }
 }
+

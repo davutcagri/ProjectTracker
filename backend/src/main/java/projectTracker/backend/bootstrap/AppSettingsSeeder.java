@@ -1,10 +1,10 @@
-package projectTracker.backend.config;
+package projectTracker.backend.bootstrap;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import projectTracker.backend.model.AppSettings;
+import projectTracker.backend.model.entity.AppSettings;
 import projectTracker.backend.repository.AppSettingsRepository;
 
 @Component

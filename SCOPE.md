@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-03
+updated: 2026-09-05
 version: v1-mvp
 ---
 
@@ -71,8 +71,13 @@ yeniden hesaplanır (cache yok).
 | Dosya | Portal ne yapar |
 |---|---|
 | `README.md` | Ham render (proje açıklaması) |
-| `SCOPE.md` | Ham render + opsiyonel `updated:` frontmatter |
+| `SCOPE.md` | Ham render |
 | `ROADMAP.md` | **İlerlemenin kaynağı** — aşağıya bakın |
+
+> **Not (v1):** `SCOPE.md` / `ROADMAP.md` başındaki `updated:` frontmatter alanı
+> **v1'de parse EDİLMEZ**. Dokümanın tazeliği M3'te gelen git son commit tarihi
+> (git repo değilse `.md` dosyasının değiştirilme zamanı — mtime) ile gösterilir;
+> bu daha güvenilir bir "son aktivite" sinyalidir. `updated:` desteği M8'e ertelendi.
 
 **İlerleme hesabı** — `ROADMAP.md` içinde `## <Milestone>` başlıkları altındaki
 GitHub tarzı onay kutuları:
@@ -199,7 +204,9 @@ Kullanıcı tüm soruları cevaplayınca portal `claude --resume <session-id> -p
 ## 8. Arayüz
 
 - **Liste sayfası:** proje kartları — ad · kısa açıklama (README/SCOPE ilk
-  paragrafı) · ilerleme çubuğu · doküman rozetleri (README/SCOPE/ROADMAP ✓/✗) ·
+  paragrafı) · ilerleme çubuğu · **tek birleşik doküman durumu rozeti** ("tam" /
+  "eksik" / "bilinmiyor", mevcut `docsStatus` alanına dayanır — README/SCOPE/
+  ROADMAP için üç ayrı rozet **v1'de gerekli değil**, MVP kararı 2026-09-05) ·
   son aktivite tarihi · dil/yapı ikonu · **Sync** butonu. ROADMAP yoksa çubuk
   yerine "Yol haritası yok". Üstte **"Projeleri Tara"**.
 - **Proje detay sayfası:** 3 sekme (README / SCOPE / ROADMAP render edilmiş
@@ -273,3 +280,6 @@ ve build anında gereklidir, çalışma anında değil.
 - `stream-json` çıktı formatı Claude Code sürümleri arası değişebilir.
 - jpackage ile üretilen `.app` imzasız olacağı için Gatekeeper ilk açılışta
   uyarı verebilir (sağ tık → Aç).
+- `updated:` frontmatter v1'de parse edilmiyor (karar 2026-09-04). Doküman tazeliği
+  M3 git son commit tarihi / `.md` mtime ile gösterilecek. İleride ihtiyaç olursa
+  M8'de eklenir; `GET /api/projects/{id}` DTO'suna şimdilik `updated` alanı konmaz.

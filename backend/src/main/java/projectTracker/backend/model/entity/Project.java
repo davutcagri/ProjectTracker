@@ -1,7 +1,8 @@
-package projectTracker.backend.model;
+package projectTracker.backend.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import projectTracker.backend.model.enums.DocsStatus;
 
 import java.time.Instant;
 

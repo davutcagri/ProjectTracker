@@ -2,7 +2,7 @@ package projectTracker.backend.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import projectTracker.backend.model.Project;
+import projectTracker.backend.model.entity.Project;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, String> {

@@ -1,11 +1,15 @@
+import { Link } from 'react-router-dom'
 import type { ProjectDocsStatus, ProjectListItem } from '../api/types'
+import { ProgressMeter } from './ProgressMeter'
 import { Icon } from './ui/Icon'
 
 /*
   Bir proje kaydı — panodaki bir kart. Grid'de yan yana durur, bu yüzden
-  kompakt: ad, kısaltılmış disk yolu, doküman durumu rozeti ve son tarama
-  tarihi. İlerleme ölçeri + README/SCOPE/ROADMAP rozetleri M2 işi.
-  Kart M2'ye kadar tıklanamaz (detay sayfası henüz yer tutucu).
+  kompakt: ad, kısaltılmış disk yolu, kompakt ilerleme çubuğu, doküman durumu
+  rozeti ve son tarama tarihi. Kart artık `/projects/:id` detay sayfasına link
+  (M2 madde 6). README/SCOPE/ROADMAP için ayrı rozetler YOK — liste endpoint'i
+  yalnızca tek bir `docsStatus` veriyor, dosya bazında değil (bkz. SCOPE §8 notu
+  görev metninde); üç ayrı rozet backend'de o veri eklenince ayrı bir görev olur.
 */
 
 const DOCS_LABEL: Record<ProjectDocsStatus, string> = {
@@ -70,7 +74,10 @@ export function ProjectCard({ project }: { project: ProjectListItem }) {
 
   return (
     <li>
-      <article className="flex h-full flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition duration-150 ease-out hover:-translate-y-0.5 hover:border-fg-subtle/60 hover:shadow-card-hover">
+      <Link
+        to={`/projects/${project.id}`}
+        className="flex h-full flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition duration-150 ease-out hover:-translate-y-0.5 hover:border-fg-subtle/60 hover:shadow-card-hover"
+      >
         <div className="flex items-start justify-between gap-2">
           <h3 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-fg">
             {project.displayName}
@@ -94,6 +101,10 @@ export function ProjectCard({ project }: { project: ProjectListItem }) {
           <span className="truncate">{shortenPath(project.path)}</span>
         </p>
 
+        <div className="mt-3">
+          <ProgressMeter percent={project.progress} size="sm" />
+        </div>
+
         <div className="mt-auto border-t border-border pt-3">
           <DocsBadge status={project.docsStatus} />
           {scanned && (
@@ -105,7 +116,7 @@ export function ProjectCard({ project }: { project: ProjectListItem }) {
             </p>
           )}
         </div>
-      </article>
+      </Link>
     </li>
   )
 }

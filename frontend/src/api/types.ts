@@ -16,6 +16,12 @@ export interface ProjectListItem {
   displayName: string
   pinned: boolean
   docsStatus: ProjectDocsStatus
+  /**
+   * 0-100 tam sayı. Bu alan backend'de M2 ile paralel bir görevde ekleniyor;
+   * o görev henüz tamamlanmadıysa yanıtta gelmeyebilir (`undefined`) — arayüz
+   * bunu "veri yok" olarak ele alır (bkz. ProgressMeter).
+   */
+  progress: number
   lastScanAt: string
 }
 
@@ -29,45 +35,47 @@ export interface Settings {
 }
 
 /* ------------------------------------------------------------------ *
- * M2 taslağı — aşağıdaki tipler doküman parse / detay sayfası içindir.
- * Backend detay sözleşmesi bağlanınca güncellenecek. SİLME.
+ * M2 — GET /api/projects/{id} ve POST /api/projects/{id}/sync gerçek
+ * sözleşmesi (backend M2 madde 1-4 tamam, madde 5-6 burada bağlanıyor).
  * ------------------------------------------------------------------ */
 
-export type DocsStatus = 'COMPLETE' | 'PARTIAL' | 'MISSING'
+export type ProjectDocFileName = 'README.md' | 'SCOPE.md' | 'ROADMAP.md'
 
-/** Liste kartında gösterilen özet proje bilgisi (GET /api/projects). */
-export interface ProjectSummary {
-  id: number
+/** Tek bir kök dizin dosyası. `content === null` → proje kökünde dosya yok. */
+export interface ProjectDoc {
+  fileName: ProjectDocFileName
+  content: string | null
+}
+
+/** Backend İngilizce döner; arayüzde Türkçeye çevrilir (bkz. MilestoneList). */
+export type MilestoneStatus = 'Empty' | 'Not Started' | 'In Progress' | 'Completed'
+
+export interface ProjectMilestone {
+  name: string
+  totalTasks: number
+  completedTasks: number
+  status: MilestoneStatus
+  /** 0-100 tam sayı. */
+  progress: number
+}
+
+/** Detay sayfası (GET /api/projects/{id}, POST /api/projects/{id}/sync). */
+export interface ProjectDetail {
+  id: string
   path: string
   displayName: string
-  shortDescription: string | null
-  pinned: boolean
-  hasReadme: boolean
-  hasScope: boolean
-  hasRoadmap: boolean
-  /** 0..1 — ROADMAP yoksa null. */
-  progress: number | null
-  lastActivityAt: string | null
+  docs: ProjectDoc[]
+  /** 0-100 tam sayı. */
+  progress: number
+  milestones: ProjectMilestone[]
+  lastScanAt: string
+  /** Serbest not alanı (ROADMAP M2 madde 7). null = not girilmemiş/silinmiş. */
+  notes: string | null
 }
 
-export type MilestoneStatus = 'PLANNED' | 'IN_PROGRESS' | 'DONE'
-
-export interface Milestone {
-  title: string
-  status: MilestoneStatus
-  doneCount: number
-  totalCount: number
-}
-
-/** Detay sayfası (GET /api/projects/{id}). */
-export interface ProjectDetail extends ProjectSummary {
-  readmeHtml: string | null
-  scopeHtml: string | null
-  roadmapHtml: string | null
-  milestones: Milestone[]
-  notes: string
-  git: GitStats | null
-}
+/* ------------------------------------------------------------------ *
+ * M3 taslağı — git metadata henüz backend'de yok. SİLME.
+ * ------------------------------------------------------------------ */
 
 export interface GitStats {
   branch: string

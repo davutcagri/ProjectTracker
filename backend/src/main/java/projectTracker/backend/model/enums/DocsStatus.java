@@ -1,4 +1,4 @@
-package projectTracker.backend.model;
+package projectTracker.backend.model.enums;
 
 public enum DocsStatus {
     UNKNOWN,

@@ -12,7 +12,6 @@ import java.io.IOException;
 @Configuration
 public class SpaWebConfig implements WebMvcConfigurer {
 
-    /** Fallback disinda tutulan, backend'e ait yol on ekleri. */
     private static final String[] BACKEND_PATH_PREFIXES = {
             "api/",
             "h2-console/",
@@ -32,19 +31,16 @@ public class SpaWebConfig implements WebMvcConfigurer {
 
                         Resource requested = location.createRelative(resourcePath);
 
-                        // 1) Gercek dosya varsa (assets/..., favicon.ico) onu ver
                         if (requested.exists() && requested.isReadable()) {
                             return requested;
                         }
 
-                        // 2) Backend yollari SPA'ya dusmesin -> null = 404
                         for (String prefix : BACKEND_PATH_PREFIXES) {
                             if (resourcePath.startsWith(prefix)) {
                                 return null;
                             }
                         }
 
-                        // 3) Kalan her sey React Router'in bir rotasidir
                         return new ClassPathResource("static/index.html");
                     }
                 });
