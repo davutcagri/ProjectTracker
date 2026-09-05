@@ -15,6 +15,8 @@ export type IconName =
   | 'inbox'
   | 'pin'
   | 'arrowRight'
+  | 'close'
+  | 'sparkle'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   projects: (
@@ -59,6 +61,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   pin: <path d="M12 3l2 5 5 .7-3.6 3.5.9 5L12 15l-4.2 2.2.9-5L5 8.7 10 8z" />,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  sparkle: <path d="M12 4l1.8 4.7L18.5 10l-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.3z" />,
 }
 
 interface IconProps {

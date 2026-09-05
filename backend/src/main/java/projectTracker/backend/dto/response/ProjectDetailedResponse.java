@@ -7,5 +7,5 @@ import java.time.Instant;
 import java.util.List;
 
 
-public record ProjectDetailedResponse(String id, String path, String displayName, String notes, List<ProjectDocs> docs, Integer progress, List<Milestone> milestones, Instant lastScanAt) {
+public record ProjectDetailedResponse(String id, String path, String displayName, String notes, List<ProjectDocs> docs, Integer progress, List<Milestone> milestones, Instant lastScanAt, boolean gitRepo, Instant lastCommitDate, String lastCommitMessage, Integer branchCount, Integer commitCount, Instant lastActivity) {
 }

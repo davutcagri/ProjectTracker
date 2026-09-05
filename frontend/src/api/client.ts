@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 /*
   Merkezi axios örneği. Tüm API çağrıları bunun üzerinden gider.
@@ -10,3 +10,21 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 })
+
+/**
+ * Backend hata gövdesi her zaman `{ "error": "<TR mesaj>" }` biçiminde.
+ * Bu yardımcı, bir axios hatasından o mesajı (varsa) çıkarır; yoksa null döner
+ * ve çağıran genel bir metne düşer.
+ */
+export function apiErrorMessage(err: unknown): string | null {
+  if (isAxiosError(err)) {
+    const body = err.response?.data as { error?: unknown } | undefined
+    if (body && typeof body.error === 'string') return body.error
+  }
+  return null
+}
+
+/** Bir axios hatasının HTTP durum kodu (yoksa null). */
+export function apiErrorStatus(err: unknown): number | null {
+  return isAxiosError(err) ? (err.response?.status ?? null) : null
+}

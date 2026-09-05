@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { isAxiosError } from 'axios'
+import { apiErrorMessage, apiErrorStatus } from '../api/client'
+import { startInterview } from '../api/interview'
 import { fetchProjectDetail, syncProject } from '../api/projects'
-import type { ProjectDetail } from '../api/types'
+import type { ProjectDetail, ProjectDocFileName } from '../api/types'
+import { GitStats } from '../components/GitStats'
+import { InterviewWizard } from '../components/InterviewWizard'
 import { MilestoneList } from '../components/MilestoneList'
 import { ProgressMeter } from '../components/ProgressMeter'
 import { ProjectDocTabs } from '../components/ProjectDocTabs'
@@ -10,6 +14,8 @@ import { ProjectNotes } from '../components/ProjectNotes'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Icon } from '../components/ui/Icon'
+
+const DOC_NAMES: ProjectDocFileName[] = ['README.md', 'SCOPE.md', 'ROADMAP.md']
 
 /*
   Proje detay sayfası (ROADMAP M2 madde 5, SCOPE §8 "Proje detay sayfası").
@@ -26,6 +32,7 @@ export function ProjectDetailPage() {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [showWizard, setShowWizard] = useState(false)
 
   async function load(projectId: string) {
     setLoadState('loading')
@@ -51,6 +58,28 @@ export function ProjectDetailPage() {
     try {
       const updated = await syncProject(id)
       setDetail(updated)
+
+      const missing = DOC_NAMES.some((name) => {
+        const doc = updated.docs.find((d) => d.fileName === name)
+        return !doc || doc.content == null
+      })
+      if (!missing) return
+
+      // Eksik dosya var → interview başlat, sihirbazı aç (SCOPE §4, ROADMAP M4).
+      try {
+        await startInterview(id)
+        setShowWizard(true)
+      } catch (err) {
+        const status = apiErrorStatus(err)
+        const message = apiErrorMessage(err)
+        if (status === 409 && message === 'Başka bir interview sürüyor') {
+          setSyncError(
+            'Şu anda başka bir proje için doküman üretimi sürüyor, bitince tekrar dene.',
+          )
+        } else if (status !== 409) {
+          setSyncError(message ?? 'Doküman üretimi başlatılamadı.')
+        }
+      }
     } catch {
       setSyncError('Sync başarısız oldu. Backend :8420 çalışıyor mu?')
     } finally {
@@ -151,8 +180,27 @@ export function ProjectDetailPage() {
       </div>
 
       <div className="mt-5">
+        <GitStats
+          gitRepo={detail.gitRepo}
+          lastCommitDate={detail.lastCommitDate}
+          lastCommitMessage={detail.lastCommitMessage}
+          branchCount={detail.branchCount}
+          commitCount={detail.commitCount}
+        />
+      </div>
+
+      <div className="mt-5">
         <ProjectNotes key={detail.id} projectId={detail.id} initialNotes={detail.notes} />
       </div>
+
+      {showWizard && (
+        <InterviewWizard
+          projectId={detail.id}
+          projectName={detail.displayName}
+          onClose={() => setShowWizard(false)}
+          onCompleted={() => id && void load(id)}
+        />
+      )}
     </section>
   )
 }

@@ -45,33 +45,33 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 
 ## M3 — Git metadata (JGit)
 
-- [ ] Proje git repo'su mu tespiti
-- [ ] Son commit tarihi + mesajı, branch sayısı, commit sayısı
-- [ ] "Son aktivite" = git ise son commit tarihi, değilse `.md` dosya mtime'ı
-- [ ] Detay sayfasında git istatistik bölümü
-- [ ] Kartta son aktivite tarihi
+- [x] Proje git repo'su mu tespiti
+- [x] Son commit tarihi + mesajı, branch sayısı, commit sayısı
+- [x] "Son aktivite" = git ise son commit tarihi, değilse `.md` dosya mtime'ı
+- [x] Detay sayfasında git istatistik bölümü
+- [x] Kartta son aktivite tarihi
 
 ## M4 — Claude agent ve interview döngüsü
 
-- [ ] `portal-doc-generator.json` agent tanımı (system prompt + tool allowlist)
-- [ ] Agent system prompt: `<portal-questions>` soru formatı (hibrit: açık uçlu
+- [x] `portal-doc-generator.json` agent tanımı (system prompt + tool allowlist)
+- [x] Agent system prompt: `<portal-questions>` soru formatı (hibrit: açık uçlu
       varsayılan + opsiyonel `choice`/`multi`), `<portal-done>` bitiş sinyali,
       "yalnızca eksik `*.md`", dil kuralı
-- [ ] `ClaudeRunner` arayüzü + `ProcessBuilder` implementasyonu
+- [x] `ClaudeRunner` arayüzü + `ProcessBuilder` implementasyonu
       (`--agents`, `--agent`, `--session-id`, `--output-format stream-json`)
-- [ ] `stream-json` çıktı parser'ı (session_id, son mesaj, `<portal-questions>` /
+- [x] `stream-json` çıktı parser'ı (session_id, son mesaj, `<portal-questions>` /
       `<portal-done>` blokları)
-- [ ] PreToolUse hook: yazma yalnızca proje kökü `*.md`
-- [ ] `interview_session` entity
-- [ ] `POST /api/projects/{id}/interview/start` — dosya eksikse yeni session
-- [ ] `POST /api/projects/{id}/interview/answers` — `--resume` ile devam (async, `202`)
-- [ ] `GET /api/projects/{id}/interview` — durum + bekleyen sorular (polling)
-- [ ] Global kilit (aynı anda tek interview)
-- [ ] 5 dakika tur timeout
-- [ ] Frontend: interview sihirbazı — soru tipine göre render (`text`/`textarea`
+- [x] PreToolUse hook: yazma yalnızca proje kökü `*.md`
+- [x] `interview_session` entity
+- [x] `POST /api/projects/{id}/interview/start` — dosya eksikse yeni session
+- [x] `POST /api/projects/{id}/interview/answers` — `--resume` ile devam (async, `202`)
+- [x] `GET /api/projects/{id}/interview` — durum + bekleyen sorular (polling)
+- [x] Global kilit (aynı anda tek interview)
+- [x] 5 dakika tur timeout
+- [x] Frontend: interview sihirbazı — soru tipine göre render (`text`/`textarea`
       metin kutusu, `choice` radyo + "Diğer", `multi` checkbox), her soruda "Geç",
       "Claude düşünüyor" spinner'ı, İptal butonu
-- [ ] Frontend: kartta Sync eksik dosya bulunca interview akışını tetikler
+- [x] Frontend: kartta Sync eksik dosya bulunca interview akışını tetikler
 
 ## M5 — Oturum temizliği ve loglar
 

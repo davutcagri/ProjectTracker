@@ -23,6 +23,13 @@ export interface ProjectListItem {
    */
   progress: number
   lastScanAt: string
+  /**
+   * Projede en son ne zaman iş yapıldığı (ISO-8601 UTC): git deposuysa son
+   * commit tarihi, değilse kökteki README/SCOPE/ROADMAP.md'nin en yeni
+   * değiştirilme zamanı. Hiçbiri yoksa null. Kartta gösterilen tarih budur —
+   * `lastScanAt` (backend'in en son tarama zamanı) ile karıştırma.
+   */
+  lastActivity: string | null
 }
 
 /* ------------------------------------------------------------------ *
@@ -71,18 +78,24 @@ export interface ProjectDetail {
   lastScanAt: string
   /** Serbest not alanı (ROADMAP M2 madde 7). null = not girilmemiş/silinmiş. */
   notes: string | null
-}
 
-/* ------------------------------------------------------------------ *
- * M3 taslağı — git metadata henüz backend'de yok. SİLME.
- * ------------------------------------------------------------------ */
-
-export interface GitStats {
-  branch: string
-  lastCommitAt: string
-  lastCommitMessage: string
-  commitCount: number
-  branchCount: number
+  /* ---- ROADMAP M3 — git metadata (backend hazır, doğrulanmış sözleşme) ---- */
+  /** Proje klasörü bir git deposu mu? Diğer git alanları için ayraç. */
+  gitRepo: boolean
+  /** Son commit tarihi (ISO-8601 UTC). Git değilse veya hiç commit yoksa null. */
+  lastCommitDate: string | null
+  /** Son commit mesajı. Git değilse veya hiç commit yoksa null. */
+  lastCommitMessage: string | null
+  /** Branch (dal) sayısı. Git değilse null, boş depoda 0. */
+  branchCount: number | null
+  /** Commit sayısı. Git değilse null, boş depoda 0. */
+  commitCount: number | null
+  /**
+   * Son aktivite (ISO-8601 UTC): git ise son commit tarihi, değilse en yeni
+   * `.md` dosyasının değişiklik zamanı. Hiçbiri yoksa null. Asıl gösterim yeri
+   * proje kartı (ROADMAP M3 madde 5).
+   */
+  lastActivity: string | null
 }
 
 /** Interview sihirbazı — SCOPE §6.3 <portal-questions> formatı. */
@@ -96,13 +109,28 @@ export interface InterviewQuestion {
   placeholder: string | null
 }
 
-export type InterviewStatus =
-  | 'RUNNING'
-  | 'WAITING_INPUT'
-  | 'DONE'
-  | 'ERROR'
+export type InterviewStatus = 'RUNNING' | 'WAITING_INPUT' | 'DONE' | 'ERROR'
 
-export interface InterviewState {
+/** Bir cevabı backend'e gönderirken kullanılan biçim (çıplak dizinin elemanı). */
+export interface InterviewAnswer {
+  questionId: string
+  /** Serbest metin; `multi` tipinde seçimler virgülle birleştirilir. */
+  answer: string
+  /** Kullanıcı "Geç" dediyse true; bu durumda `answer` boş gönderilir. */
+  skipped: boolean
+}
+
+/**
+ * GET/POST .../interview yanıtı. `pendingQuestions` yalnızca status
+ * `WAITING_INPUT` iken doludur; diğer durumlarda boş dizidir. `doneSummary`
+ * backend'de şimdilik hep null — DONE ekranında sabit metin gösterilir.
+ */
+export interface InterviewStatusResponse {
+  sessionId: string
+  projectId: string
   status: InterviewStatus
   pendingQuestions: InterviewQuestion[]
+  startedAt: string
+  lastActivityAt: string
+  doneSummary: string | null
 }

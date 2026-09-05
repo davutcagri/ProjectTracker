@@ -11,10 +11,11 @@ public record ProjectResponse(
         boolean pinned,
         String docsStatus,
         Instant lastScanAt,
-        Integer progress
+        Integer progress,
+        Instant lastActivity
 ) {
 
-    public static ProjectResponse from(Project p, Integer progress) {
+    public static ProjectResponse from(Project p, Integer progress, Instant lastActivity) {
         return new ProjectResponse(
                 p.getId(),
                 p.getPath(),
@@ -22,7 +23,8 @@ public record ProjectResponse(
                 Boolean.TRUE.equals(p.getPinned()),
                 p.getDocsStatus() == null ? null : p.getDocsStatus().name(),
                 p.getLastScanAt(),
-                progress
+                progress,
+                lastActivity
         );
     }
 }

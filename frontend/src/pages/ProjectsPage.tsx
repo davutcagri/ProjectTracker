@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchProjects, scanProjects } from '../api/projects'
 import type { ProjectListItem } from '../api/types'
+import { InterviewWizard } from '../components/InterviewWizard'
 import { ProjectCard } from '../components/ProjectCard'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -27,6 +28,8 @@ export function ProjectsPage() {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
+  // Kart Sync'i eksik dosya bulup interview başlatınca burası dolar → sihirbaz açılır.
+  const [interviewFor, setInterviewFor] = useState<ProjectListItem | null>(null)
 
   // mode 'initial' → tam sayfa yükleme/hata durumu; 'refresh' → sessiz yenileme.
   const load = useCallback(async (mode: 'initial' | 'refresh') => {
@@ -123,9 +126,23 @@ export function ProjectsPage() {
       {loadState === 'ready' && projects.length > 0 && (
         <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onInterviewStart={setInterviewFor}
+              onSynced={() => void load('refresh')}
+            />
           ))}
         </ul>
+      )}
+
+      {interviewFor && (
+        <InterviewWizard
+          projectId={interviewFor.id}
+          projectName={interviewFor.displayName}
+          onClose={() => setInterviewFor(null)}
+          onCompleted={() => void load('refresh')}
+        />
       )}
     </section>
   )

@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-05
+updated: 2026-09-06
 version: v1-mvp
 ---
 
@@ -115,6 +115,10 @@ claude -p "<görev metni>" \
 - `cwd` = proje kök dizini
 - Her çağrı çalışır ve **process olarak çıkar** — turlar arası bekleyen process
   yoktur. Akış temiz bir istek/yanıt döngüsüdür.
+- **Devam turunda (`--resume`) `--agents` + `--agent` yeniden verilir.** M4
+  uygulamasında görüldü: satır içi (`--agents` JSON) agent tanımı session'a
+  kalıcı yazılmıyor; her turda (start ve her `--resume`) tekrar geçilmezse agent
+  yüklenmiyor. Eski "resume'da gerekmez" varsayımı yanlıştı.
 
 ### 6.3 stdout sözleşmesi
 
@@ -160,7 +164,12 @@ Kullanıcı tüm soruları cevaplayınca portal `claude --resume <session-id> -p
   gerçekten kapalı-kümeli sorularda kullanılır. Böylece "proje özeti", "hedef
   kitle" gibi bilgiler serbestçe verilebilir.
 - Yazma işlemleri proje kökündeki `*.md` ile sınırlı (PreToolUse hook ile zorlanır).
-- Non-interactive permission modu.
+- Non-interactive permission modu: `--permission-mode acceptEdits` + PreToolUse
+  hook. Hook `Write|Edit|MultiEdit` çağrılarını yakalar, yol proje kökünde bir
+  `*.md` ise `allow` kararı döner, değilse reddeder. `acceptEdits` tek başına
+  alt-klasör yazımını da açardı; güvenlik hook'un `allow`/deny kararından gelir.
+  Hook ayarı `--settings` ile satır içi JSON olarak geçilir (global `~/.claude`
+  kirletilmez).
 - Tek tur timeout: **5 dakika**.
 - **Global kilit:** aynı anda yalnızca bir interview çalışır; ikinci deneme
   "Başka bir interview sürüyor" ile engellenir.
