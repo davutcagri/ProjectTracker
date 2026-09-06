@@ -4,9 +4,10 @@
 #
 # Ne yapar:
 #   1. backend/ içinde fat jar üretir (gömülü derlenmiş React SPA dahil).
-#   2. jpackage ile ProjectTracker.app (app-image) üretir: gömülü JRE + jar.
+#   2. jpackage ile "Project Tracker.app" (app-image) üretir: gömülü JRE + jar + ikon.
 #
-# Çıktı: <proje kökü>/dist/ProjectTracker.app  (dist/ .gitignore'da)
+# Çıktı: <proje kökü>/dist/Project Tracker.app  (dist/ .gitignore'da)
+# İkon:  scripts/appicon.icns  (kaynak: scripts/make-icon.py, Pillow gerektirir)
 #
 # Ön koşul: jpackage içeren JDK 17. Script öncelikle
 #   /opt/homebrew/opt/openjdk@17/bin/jpackage yolunu dener, yoksa PATH'e bakar.
@@ -18,8 +19,9 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 DIST_DIR="${PROJECT_ROOT}/dist"
 
-APP_NAME="ProjectTracker"
+APP_NAME="Project Tracker"
 APP_VERSION="1.0.0"
+APP_ICON="${SCRIPT_DIR}/appicon.icns"
 
 JPACKAGE="/opt/homebrew/opt/openjdk@17/bin/jpackage"
 if [ ! -x "${JPACKAGE}" ]; then
@@ -70,6 +72,14 @@ rm -rf "${INPUT_DIR}"
 mkdir -p "${INPUT_DIR}"
 cp "${JAR_PATH}" "${INPUT_DIR}/"
 
+ICON_ARGS=()
+if [ -f "${APP_ICON}" ]; then
+  ICON_ARGS=(--icon "${APP_ICON}")
+  echo "==> Ikon: ${APP_ICON}"
+else
+  echo "==> Ikon bulunamadi (${APP_ICON}) — varsayilan jpackage ikonu kullanilacak"
+fi
+
 echo "==> [3/3] jpackage calisiyor..."
 "${JPACKAGE}" \
   --type app-image \
@@ -77,6 +87,7 @@ echo "==> [3/3] jpackage calisiyor..."
   --app-version "${APP_VERSION}" \
   --input "${INPUT_DIR}" \
   --main-jar "${JAR_NAME}" \
+  ${ICON_ARGS[@]+"${ICON_ARGS[@]}"} \
   --java-options "-Dprojecttracker.launch.open-browser=true" \
   --dest "${DIST_DIR}" \
   --vendor "ProjectTracker" \

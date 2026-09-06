@@ -1,6 +1,6 @@
 # ProjectTracker — Paketleme ve Kurulum (macOS)
 
-Bu belge `ProjectTracker.app`'in nasıl üretileceğini, kurulacağını ve
+Bu belge `Project Tracker.app`'in nasıl üretileceğini, kurulacağını ve
 çalıştırılacağını anlatır. Hedef: **tek çift tıklamayla açılan, terminal
 gerektirmeyen** bir masaüstü uygulaması (SCOPE §3, §10).
 
@@ -34,10 +34,10 @@ Script sırasıyla:
    `backend/target/backend-0.0.1-SNAPSHOT.jar` (içinde derlenmiş React SPA:
    `BOOT-INF/classes/static/index.html`).
 2. Jar'ı geçici temiz bir klasöre kopyalar (`dist/.jpackage-input/`).
-3. `jpackage --type app-image` ile `dist/ProjectTracker.app` üretir
+3. `jpackage --type app-image` ile `dist/Project Tracker.app` üretir
    (gömülü JRE + jar). Geçici klasörü siler.
 
-Çıktı: **`dist/ProjectTracker.app`** (`dist/` ve `*.app` `.gitignore`'da — commit'e girmez).
+Çıktı: **`dist/Project Tracker.app`** (`dist/` ve `*.app` `.gitignore`'da — commit'e girmez).
 
 Kullanılan tam `jpackage` komutu:
 
@@ -66,19 +66,19 @@ jpackage bunu `--main-jar`'dan okur.
 "ProjectTracker geliştiricisi doğrulanamadığı için açılamıyor" benzeri bir
 uyarı verebilir. Çözüm (biri yeterli):
 
-- **Finder'da** `ProjectTracker.app`'e **sağ tık → Aç** → çıkan uyarıda tekrar
+- **Finder'da** `Project Tracker.app`'e **sağ tık → Aç** → çıkan uyarıda tekrar
   **Aç**. Bu yalnızca ilk seferde gerekir; sonra normal çift tıklama çalışır.
 - Ya da terminalden karantina işaretini kaldır:
 
   ```bash
-  xattr -dr com.apple.quarantine dist/ProjectTracker.app
+  xattr -dr com.apple.quarantine "dist/Project Tracker.app"
   ```
 
 ---
 
 ## 4. Çalıştırma
 
-`ProjectTracker.app`'e **çift tıkla**. Birkaç saniye içinde:
+`Project Tracker.app`'e **çift tıkla**. Birkaç saniye içinde:
 
 - Tek bir Java process başlar (`:8420`).
 - Varsayılan tarayıcıda `http://localhost:8420` otomatik açılır
@@ -129,13 +129,13 @@ Paketlenmiş uygulama H2 veritabanını şurada tutar:
 
 ## 7. `/Applications` veya Dock'a yerleştirme
 
-`dist/ProjectTracker.app` taşınabilir bir pakettir. Kalıcı kurulum için:
+`dist/Project Tracker.app` taşınabilir bir pakettir. Kalıcı kurulum için:
 
-- **Finder'da** `dist/ProjectTracker.app`'i `/Applications` klasörüne
+- **Finder'da** `dist/Project Tracker.app`'i `/Applications` klasörüne
   **sürükle**, ya da terminalden:
 
   ```bash
-  cp -R dist/ProjectTracker.app /Applications/
+  cp -R "dist/Project Tracker.app" /Applications/
   ```
 
   Ardından Launchpad'de ve Spotlight'ta görünür.
@@ -155,4 +155,4 @@ Güncelleme: yeni sürüm build edip `/Applications` içindeki eski `.app`'in
 |---|---|---|---|---|
 | Backend (dev) | `cd backend && ./mvnw spring-boot:run` | 8420 | açılmaz | `backend/data/mydb` |
 | Frontend (dev) | `cd frontend && npm run dev` | 5173 (`/api` proxy) | — | — |
-| Paketlenmiş | `ProjectTracker.app` | 8420 | otomatik açılır | `~/Library/Application Support/ProjectTracker/db/` |
+| Paketlenmiş | `Project Tracker.app` | 8420 | otomatik açılır | `~/Library/Application Support/ProjectTracker/db/` |
