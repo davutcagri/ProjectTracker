@@ -21,6 +21,7 @@ public class BackendApplication {
     public static void main(String[] args) throws IOException {
         boolean packaged = Boolean.getBoolean(PACKAGED_PROPERTY);
         if (packaged) {
+            System.setProperty("java.awt.headless", "false");
             configureDataDirectory();
             if (isPortInUse(APP_PORT)) {
                 BrowserLauncher.open(LOCAL_URL);

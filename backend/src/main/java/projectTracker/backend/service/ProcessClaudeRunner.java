@@ -7,6 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import projectTracker.backend.dto.internal.ClaudeExecution;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -15,9 +16,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -89,7 +93,7 @@ public class ProcessClaudeRunner implements ClaudeRunner {
         }
         Map<String, Object> hook = Map.of(
                 "type", "command",
-                "command", "python3 " + hookScriptPath()
+                "command", python3Executable() + " " + hookScriptPath()
         );
         Map<String, Object> matcher = Map.of(
                 "matcher", WRITE_HOOK_MATCHER,
@@ -134,6 +138,7 @@ public class ProcessClaudeRunner implements ClaudeRunner {
 
             ProcessBuilder builder = new ProcessBuilder(command);
             builder.directory(projectDir.toFile());
+            enrichPath(builder, command.get(0));
             builder.redirectErrorStream(false);
             builder.redirectOutput(stdoutFile.toFile());
             builder.redirectError(stderrFile.toFile());
@@ -178,27 +183,167 @@ public class ProcessClaudeRunner implements ClaudeRunner {
         }
         if (override != null && !override.isBlank()) {
             cachedExecutable = override.trim();
+            log.info("claude yolu override ile belirlendi: {}", cachedExecutable);
             return cachedExecutable;
         }
-        String discovered = which();
-        cachedExecutable = discovered != null ? discovered : "claude";
+
+        String viaShell = resolveViaLoginShell();
+        if (viaShell != null) {
+            log.info("claude yolu login shell ile bulundu: {}", viaShell);
+            cachedExecutable = viaShell;
+            return cachedExecutable;
+        }
+
+        String viaScan = scanKnownPaths();
+        if (viaScan != null) {
+            log.info("claude yolu bilinen dizin taramasiyla bulundu: {}", viaScan);
+            cachedExecutable = viaScan;
+            return cachedExecutable;
+        }
+
+        log.warn("claude CLI bulunamadi. PATH={} ; login shell ve bilinen yollar tarandi, calistirilabilir 'claude' yok. Duz 'claude' denenecek.",
+                System.getenv("PATH"));
+        cachedExecutable = "claude";
         return cachedExecutable;
     }
 
-    private String which() {
-        try {
-            Process probe = new ProcessBuilder("which", "claude").redirectErrorStream(true).start();
-            String output = new String(probe.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            boolean finished = probe.waitFor(5, TimeUnit.SECONDS);
-            if (finished && probe.exitValue() == 0) {
-                return output.lines().map(String::trim).filter(line -> !line.isBlank()).findFirst().orElse(null);
+    private String resolveViaLoginShell() {
+        String shell = System.getenv("SHELL");
+        if (shell == null || shell.isBlank()) {
+            shell = "/bin/zsh";
+        }
+        List<List<String>> flagSets = List.of(
+                List.of("-l", "-c"),
+                List.of("-l", "-i", "-c")
+        );
+        for (List<String> flags : flagSets) {
+            String candidate = runShellLookup(shell, flags);
+            if (candidate != null && isExecutableFile(candidate)) {
+                return candidate;
             }
-        } catch (IOException e) {
-            log.warn("claude yolu 'which' ile bulunamadi", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
         return null;
+    }
+
+    private String runShellLookup(String shell, List<String> flags) {
+        Process probe = null;
+        try {
+            List<String> command = new ArrayList<>();
+            command.add(shell);
+            command.addAll(flags);
+            command.add("command -v claude");
+            probe = new ProcessBuilder(command).redirectErrorStream(false).start();
+            String output = new String(probe.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            boolean finished = probe.waitFor(5, TimeUnit.SECONDS);
+            if (!finished) {
+                probe.destroyForcibly();
+                return null;
+            }
+            if (probe.exitValue() != 0) {
+                return null;
+            }
+            return output.lines().map(String::trim).filter(line -> !line.isBlank()).findFirst().orElse(null);
+        } catch (IOException e) {
+            log.warn("claude login shell aramasi basarisiz ({} {})", shell, flags, e);
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (probe != null) {
+                probe.destroyForcibly();
+            }
+            return null;
+        }
+    }
+
+    private String scanKnownPaths() {
+        String home = System.getProperty("user.home");
+        List<String> candidates = List.of(
+                "/opt/homebrew/bin/claude",
+                "/usr/local/bin/claude",
+                home + "/.claude/local/claude",
+                home + "/.local/bin/claude",
+                home + "/.npm-global/bin/claude"
+        );
+        for (String candidate : candidates) {
+            if (isExecutableFile(candidate)) {
+                return candidate;
+            }
+        }
+        return newestCaskroomClaude();
+    }
+
+    private String newestCaskroomClaude() {
+        Path base = Path.of("/opt/homebrew/Caskroom/claude-code");
+        if (!Files.isDirectory(base)) {
+            return null;
+        }
+        try (Stream<Path> versions = Files.list(base)) {
+            return versions
+                    .filter(Files::isDirectory)
+                    .map(dir -> dir.resolve("claude"))
+                    .filter(path -> isExecutableFile(path.toString()))
+                    .max((a, b) -> compareVersions(
+                            a.getParent().getFileName().toString(),
+                            b.getParent().getFileName().toString()))
+                    .map(Path::toString)
+                    .orElse(null);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private int compareVersions(String a, String b) {
+        String[] left = a.split("\\.");
+        String[] right = b.split("\\.");
+        int length = Math.max(left.length, right.length);
+        for (int i = 0; i < length; i++) {
+            int x = i < left.length ? parseVersionPart(left[i]) : 0;
+            int y = i < right.length ? parseVersionPart(right[i]) : 0;
+            if (x != y) {
+                return Integer.compare(x, y);
+            }
+        }
+        return 0;
+    }
+
+    private int parseVersionPart(String part) {
+        StringBuilder digits = new StringBuilder();
+        for (char c : part.toCharArray()) {
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            } else {
+                break;
+            }
+        }
+        return digits.isEmpty() ? 0 : Integer.parseInt(digits.toString());
+    }
+
+    private boolean isExecutableFile(String path) {
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        File file = new File(path);
+        return file.isFile() && file.canExecute();
+    }
+
+    private String python3Executable() {
+        return isExecutableFile("/usr/bin/python3") ? "/usr/bin/python3" : "python3";
+    }
+
+    private void enrichPath(ProcessBuilder builder, String executable) {
+        Map<String, String> environment = builder.environment();
+        String currentPath = environment.getOrDefault("PATH", "");
+        LinkedHashSet<String> entries = new LinkedHashSet<>();
+        File executableFile = new File(executable);
+        if (executableFile.isAbsolute() && executableFile.getParentFile() != null) {
+            entries.add(executableFile.getParentFile().getAbsolutePath());
+        }
+        entries.add("/opt/homebrew/bin");
+        entries.add("/usr/local/bin");
+        if (!currentPath.isBlank()) {
+            entries.addAll(Arrays.asList(currentPath.split(File.pathSeparator)));
+        }
+        environment.put("PATH", String.join(File.pathSeparator, entries));
     }
 
     private String agentDefinition() {
