@@ -186,8 +186,8 @@ Kullanıcı tüm soruları cevaplayınca portal `claude --resume <session-id> -p
 
 | Katman | Ne yapar |
 |---|---|
-| **`<portal-done>`** | Portal yalnızca kendi `interview_session` DB satırını siler. `~/.claude/` altına **dokunmaz**. |
-| **24 saat TTL süpürücüsü** (`@Scheduled`, saatte bir) | `IN_PROGRESS` olup 24 saattir aktivitesi olmayan oturumları `ABANDONED` yapar, DB satırını siler. |
+| **`<portal-done>`** | Oturum `DONE` + kısa özet (`doneSummary`) ile işaretlenir; satır **anında silinmez**. Bir süpürücü (`@Scheduled`, dakikada bir) `DONE` olup ~2 dk'dır aktivitesi olmayan satırları siler. Bu nezaket süresi frontend'in `DONE` durumunu polling ile görebilmesi içindir. `~/.claude/` altına **dokunulmaz**. |
+| **24 saat TTL süpürücüsü** (`@Scheduled`, saatte bir) | 24 saattir aktivitesi olmayan `RUNNING`/`WAITING_INPUT` oturumların ve 1 saatten eski `ERROR` oturumların DB satırını siler. (`ABANDONED` enum'ı tutuluyor ama kullanılmıyor — satır ara adım olmadan doğrudan siliniyor.) |
 | **Claude Code yerleşik temizliği** (`cleanupPeriodDays`, varsayılan 30 gün) | Tüm `.jsonl` transkriptlerini zamanla otomatik siler. Portal bu dosyalara hiç dokunmaz. |
 
 ## 7. Veri modeli (H2)

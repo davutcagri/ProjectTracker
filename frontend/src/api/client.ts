@@ -18,8 +18,21 @@ export const api = axios.create({
  */
 export function apiErrorMessage(err: unknown): string | null {
   if (isAxiosError(err)) {
-    const body = err.response?.data as { error?: unknown } | undefined
-    if (body && typeof body.error === 'string') return body.error
+    const data = err.response?.data
+    if (data && typeof data === 'object') {
+      const body = data as { error?: unknown }
+      if (typeof body.error === 'string') return body.error
+    }
+    // Bazı çağrılar `responseType: 'text'` kullanır (ör. scan); o durumda
+    // hata gövdesi de ayrıştırılmamış bir JSON metni olarak gelir.
+    if (typeof data === 'string' && data.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(data) as { error?: unknown }
+        if (typeof parsed.error === 'string') return parsed.error
+      } catch {
+        /* JSON değil — genel mesaja düşülür */
+      }
+    }
   }
   return null
 }

@@ -8,6 +8,7 @@ import projectTracker.backend.dto.internal.ClaudeExecution;
 import projectTracker.backend.dto.internal.InterviewTurnResult;
 import projectTracker.backend.model.entity.InterviewSession;
 import projectTracker.backend.model.entity.Project;
+import projectTracker.backend.model.enums.InterviewErrorKind;
 import projectTracker.backend.model.enums.InterviewStatus;
 import projectTracker.backend.repository.InterviewSessionRepository;
 import projectTracker.backend.repository.ProjectRepository;
@@ -24,17 +25,20 @@ public class InterviewExecutor {
     private final InterviewSessionRepository sessionRepository;
     private final ProjectRepository projectRepository;
     private final ObjectMapper objectMapper;
+    private final ClaudeRunLogger claudeRunLogger;
 
     public InterviewExecutor(ClaudeRunner claudeRunner,
                              StreamJsonParser streamJsonParser,
                              InterviewSessionRepository sessionRepository,
                              ProjectRepository projectRepository,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             ClaudeRunLogger claudeRunLogger) {
         this.claudeRunner = claudeRunner;
         this.streamJsonParser = streamJsonParser;
         this.sessionRepository = sessionRepository;
         this.projectRepository = projectRepository;
         this.objectMapper = objectMapper;
+        this.claudeRunLogger = claudeRunLogger;
     }
 
     @Async
@@ -44,13 +48,15 @@ public class InterviewExecutor {
             log.warn("Interview oturumu bulunamadi: {}", sessionId);
             return;
         }
+        Instant startedAt = Instant.now();
         try {
             Path projectDir = resolveProjectDir(session);
             ClaudeExecution execution = claudeRunner.startInterview(projectDir, taskPrompt, session.getClaudeSessionId());
-            applyResult(session, execution);
+            applyResult(session, execution, startedAt);
         } catch (Exception e) {
             log.error("Interview start async calismasi basarisiz: {}", sessionId, e);
-            markError(session);
+            claudeRunLogger.recordFailure(session, startedAt, e.getMessage());
+            markError(session, InterviewErrorClassifier.classifyMessage(e.getMessage()));
         }
     }
 
@@ -61,13 +67,15 @@ public class InterviewExecutor {
             log.warn("Interview oturumu bulunamadi: {}", sessionId);
             return;
         }
+        Instant startedAt = Instant.now();
         try {
             Path projectDir = resolveProjectDir(session);
             ClaudeExecution execution = claudeRunner.resumeInterview(projectDir, session.getClaudeSessionId(), userAnswers);
-            applyResult(session, execution);
+            applyResult(session, execution, startedAt);
         } catch (Exception e) {
             log.error("Interview answers async calismasi basarisiz: {}", sessionId, e);
-            markError(session);
+            claudeRunLogger.recordFailure(session, startedAt, e.getMessage());
+            markError(session, InterviewErrorClassifier.classifyMessage(e.getMessage()));
         }
     }
 
@@ -77,23 +85,30 @@ public class InterviewExecutor {
         return Path.of(project.getPath());
     }
 
-    private void applyResult(InterviewSession session, ClaudeExecution execution) {
+    private void applyResult(InterviewSession session, ClaudeExecution execution, Instant startedAt) {
         InterviewTurnResult result = streamJsonParser.parse(execution.stdout());
 
-        if (execution.timedOut() || !result.success()) {
+        if (execution.timedOut() || execution.exitCode() != 0 || !result.success()) {
             session.setStatus(InterviewStatus.ERROR);
+            session.setErrorKind(InterviewErrorClassifier.classify(execution));
         } else if (result.done()) {
             session.setStatus(InterviewStatus.DONE);
             session.setPendingQuestionsJson(null);
+            session.setDoneSummary(result.doneSummary());
+            session.setErrorKind(null);
         } else if (result.pendingQuestions() != null && !result.pendingQuestions().isEmpty()) {
             session.setStatus(InterviewStatus.WAITING_INPUT);
             session.setPendingQuestionsJson(serializeQuestions(result));
+            session.setErrorKind(null);
         } else {
             session.setStatus(InterviewStatus.ERROR);
+            session.setErrorKind(InterviewErrorClassifier.classify(execution));
         }
 
         session.setLastActivityAt(Instant.now());
         sessionRepository.save(session);
+
+        claudeRunLogger.record(session, startedAt, execution, session.getStatus() != InterviewStatus.ERROR);
     }
 
     private String serializeQuestions(InterviewTurnResult result) {
@@ -105,9 +120,10 @@ public class InterviewExecutor {
         }
     }
 
-    private void markError(InterviewSession session) {
+    private void markError(InterviewSession session, InterviewErrorKind errorKind) {
         try {
             session.setStatus(InterviewStatus.ERROR);
+            session.setErrorKind(errorKind);
             session.setLastActivityAt(Instant.now());
             sessionRepository.save(session);
         } catch (Exception e) {

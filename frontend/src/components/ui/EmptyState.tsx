@@ -10,7 +10,7 @@ import { Icon, type IconName } from './Icon'
 interface EmptyStateProps {
   icon: IconName
   title: string
-  body: string
+  body: ReactNode
   tone?: 'neutral' | 'warning'
   action?: ReactNode
 }

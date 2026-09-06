@@ -12,6 +12,7 @@ public record InterviewStatusResponse(
         List<Question> pendingQuestions,
         Instant startedAt,
         Instant lastActivityAt,
-        String doneSummary
+        String doneSummary,
+        String errorKind
 ) {
 }

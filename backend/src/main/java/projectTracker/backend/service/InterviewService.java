@@ -119,8 +119,16 @@ public class InterviewService {
                 parseQuestions(session.getPendingQuestionsJson()),
                 session.getStartedAt(),
                 session.getLastActivityAt(),
-                null
+                session.getDoneSummary(),
+                errorKindName(session)
         );
+    }
+
+    private String errorKindName(InterviewSession session) {
+        if (session.getStatus() != InterviewStatus.ERROR || session.getErrorKind() == null) {
+            return null;
+        }
+        return session.getErrorKind().name();
     }
 
     private List<Question> parseQuestions(String json) {

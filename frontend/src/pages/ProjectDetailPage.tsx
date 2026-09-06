@@ -4,7 +4,7 @@ import { isAxiosError } from 'axios'
 import { apiErrorMessage, apiErrorStatus } from '../api/client'
 import { startInterview } from '../api/interview'
 import { fetchProjectDetail, syncProject } from '../api/projects'
-import type { ProjectDetail, ProjectDocFileName } from '../api/types'
+import type { InterviewErrorKind, ProjectDetail, ProjectDocFileName } from '../api/types'
 import { GitStats } from '../components/GitStats'
 import { InterviewWizard } from '../components/InterviewWizard'
 import { MilestoneList } from '../components/MilestoneList'
@@ -33,6 +33,9 @@ export function ProjectDetailPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [showWizard, setShowWizard] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  // Görüşme ERROR ile bitip sihirbaz kapandıysa burada tutulur (SCOPE §9).
+  const [interviewError, setInterviewError] = useState<{ kind: InterviewErrorKind } | null>(null)
 
   async function load(projectId: string) {
     setLoadState('loading')
@@ -68,6 +71,7 @@ export function ProjectDetailPage() {
       // Eksik dosya var → interview başlat, sihirbazı aç (SCOPE §4, ROADMAP M4).
       try {
         await startInterview(id)
+        setInterviewError(null)
         setShowWizard(true)
       } catch (err) {
         const status = apiErrorStatus(err)
@@ -84,6 +88,28 @@ export function ProjectDetailPage() {
       setSyncError('Sync başarısız oldu. Backend :8420 çalışıyor mu?')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  /** Hata kartındaki "Tekrar dene" — SCOPE §9: yeni session başlatır. */
+  async function handleRetryInterview() {
+    if (!id) return
+    setRetrying(true)
+    setSyncError(null)
+    try {
+      await startInterview(id)
+      setInterviewError(null)
+      setShowWizard(true)
+    } catch (err) {
+      const status = apiErrorStatus(err)
+      const message = apiErrorMessage(err)
+      if (status === 409 && message === 'Başka bir interview sürüyor') {
+        setSyncError('Şu anda başka bir proje için doküman üretimi sürüyor, bitince tekrar dene.')
+      } else if (status !== 409) {
+        setSyncError(message ?? 'Doküman üretimi başlatılamadı.')
+      }
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -132,6 +158,10 @@ export function ProjectDetailPage() {
     )
   }
 
+  const hasRoadmap = Boolean(
+    detail.docs.find((doc) => doc.fileName === 'ROADMAP.md')?.content,
+  )
+
   return (
     <section className="max-w-5xl">
       <BackLink />
@@ -162,11 +192,41 @@ export function ProjectDetailPage() {
         </p>
       )}
 
+      {interviewError && (
+        <div className="mt-3 rounded-md border border-danger/25 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">
+          <p className="flex items-center gap-2">
+            <Icon name="alert" size={15} className="shrink-0" />
+            {interviewError.kind === 'NOT_AUTHENTICATED'
+              ? "Claude'a giriş yapılmamış — doküman üretilemedi."
+              : 'Claude çağrısı başarısız oldu. Ayrıntı Loglar sayfasında.'}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <Button variant="secondary" onClick={() => void handleRetryInterview()} disabled={retrying}>
+              <Icon name="refresh" size={13} spin={retrying} />
+              {retrying ? 'Başlatılıyor…' : 'Tekrar dene'}
+            </Button>
+            <Link
+              to="/logs"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-fg-muted underline decoration-border underline-offset-2 hover:text-fg"
+            >
+              Loglar'a bak
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 max-w-sm">
-        <ProgressMeter percent={detail.progress} label="Genel ilerleme" />
+        {hasRoadmap ? (
+          <ProgressMeter percent={detail.progress} label="Genel ilerleme" />
+        ) : (
+          <div className="flex items-center justify-between text-[12px] text-fg-muted">
+            <span>Genel ilerleme</span>
+            <span className="text-fg-subtle">Yol haritası yok</span>
+          </div>
+        )}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <ProjectDocTabs docs={detail.docs} />
 
         <div>
@@ -197,8 +257,14 @@ export function ProjectDetailPage() {
         <InterviewWizard
           projectId={detail.id}
           projectName={detail.displayName}
-          onClose={() => setShowWizard(false)}
-          onCompleted={() => id && void load(id)}
+          onClose={(outcome) => {
+            if (outcome) setInterviewError({ kind: outcome.errorKind })
+            setShowWizard(false)
+          }}
+          onCompleted={() => {
+            setInterviewError(null)
+            if (id) void load(id)
+          }}
         />
       )}
     </section>

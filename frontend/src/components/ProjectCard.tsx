@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom'
 import { apiErrorMessage, apiErrorStatus } from '../api/client'
 import { startInterview } from '../api/interview'
 import { syncProject } from '../api/projects'
-import type { ProjectDocFileName, ProjectDocsStatus, ProjectListItem } from '../api/types'
+import type {
+  InterviewErrorKind,
+  ProjectDocFileName,
+  ProjectDocsStatus,
+  ProjectListItem,
+} from '../api/types'
 import { ProgressMeter } from './ProgressMeter'
 import { Icon } from './ui/Icon'
 
@@ -88,12 +93,48 @@ interface ProjectCardProps {
   onInterviewStart: (project: ProjectListItem) => void
   /** Dosyalar tamdı, normal sync yapıldı — üst sayfa listeyi tazelesin. */
   onSynced: () => void
+  /**
+   * Bu projenin görüşmesi ERROR ile bittiyse dolu gelir; kartta kısa hata
+   * satırı + "Tekrar dene" gösterilir (SCOPE §9, ROADMAP M6 madde 2).
+   */
+  interviewError?: { kind: InterviewErrorKind } | null
 }
 
-export function ProjectCard({ project, onInterviewStart, onSynced }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  onInterviewStart,
+  onSynced,
+  interviewError,
+}: ProjectCardProps) {
   const activity = formatDate(project.lastActivity)
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
+
+  /** Kart hata satırındaki "Tekrar dene" — SCOPE §9: yeni session başlatır. */
+  async function handleRetryInterview(event: React.MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (retrying) return
+    setRetrying(true)
+    setSyncError(null)
+    try {
+      await startInterview(project.id)
+      onInterviewStart(project)
+    } catch (err) {
+      const status = apiErrorStatus(err)
+      const message = apiErrorMessage(err)
+      if (status === 409 && message === 'Başka bir interview sürüyor') {
+        setSyncError('Şu anda başka bir proje için doküman üretimi sürüyor, bitince tekrar dene.')
+      } else if (status === 409) {
+        onSynced()
+      } else {
+        setSyncError(message ?? 'Doküman üretimi başlatılamadı.')
+      }
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   async function handleSync(event: React.MouseEvent) {
     event.preventDefault()
@@ -138,16 +179,16 @@ export function ProjectCard({ project, onInterviewStart, onSynced }: ProjectCard
   }
 
   return (
-    <li>
-      <div className="relative flex h-full flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition duration-150 ease-out hover:-translate-y-0.5 hover:border-fg-subtle/60 hover:shadow-card-hover">
+    <li className="min-w-0">
+      <div className="relative flex h-full min-w-0 flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition duration-150 ease-out hover:-translate-y-0.5 hover:border-fg-subtle/60 hover:shadow-card-hover">
         <Link
           to={`/projects/${project.id}`}
           aria-label={`${project.displayName} detayları`}
           className="absolute inset-0 rounded-lg"
         />
 
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-fg">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <h3 className="min-w-0 truncate text-[14px] font-semibold tracking-[-0.01em] text-fg">
             {project.displayName}
           </h3>
           {project.pinned && (
@@ -159,11 +200,11 @@ export function ProjectCard({ project, onInterviewStart, onSynced }: ProjectCard
         </div>
 
         <p
-          className="mt-1 flex items-center gap-1.5 font-mono text-[11.5px] text-fg-subtle"
+          className="mt-1 flex min-w-0 items-center gap-1.5 font-mono text-[11.5px] text-fg-subtle"
           title={project.path}
         >
           <Icon name="folder" size={12} className="shrink-0" />
-          <span className="truncate">{shortenPath(project.path)}</span>
+          <span className="min-w-0 truncate">{shortenPath(project.path)}</span>
         </p>
 
         <div className="mt-3">
@@ -184,7 +225,33 @@ export function ProjectCard({ project, onInterviewStart, onSynced }: ProjectCard
             </button>
           </div>
 
-          {syncError ? (
+          {interviewError ? (
+            <div className="relative z-10 mt-1.5">
+              <p className="flex items-start gap-1.5 text-[11px] text-danger">
+                <Icon name="alert" size={13} className="mt-px shrink-0" />
+                {interviewError.kind === 'NOT_AUTHENTICATED'
+                  ? "Claude'a giriş yapılmamış"
+                  : 'Claude çağrısı başarısız oldu'}
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <button
+                  type="button"
+                  onClick={handleRetryInterview}
+                  disabled={retrying}
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 text-[11px] font-medium text-fg-muted transition-colors hover:bg-sunken hover:text-fg disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <Icon name="refresh" size={12} spin={retrying} />
+                  {retrying ? 'Başlatılıyor…' : 'Tekrar dene'}
+                </button>
+                <Link
+                  to="/logs"
+                  className="text-[11px] font-medium text-fg-muted underline decoration-border underline-offset-2 hover:text-fg"
+                >
+                  Loglar
+                </Link>
+              </div>
+            </div>
+          ) : syncError ? (
             <p className="relative z-10 mt-1.5 flex items-start gap-1.5 text-[11px] text-warning">
               <Icon name="alert" size={13} className="mt-px shrink-0" />
               {syncError}

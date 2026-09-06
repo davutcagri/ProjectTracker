@@ -75,21 +75,21 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 
 ## M5 — Oturum temizliği ve loglar
 
-- [ ] `<portal-done>` → `interview_session` satırı sil
-- [ ] `@Scheduled` 24 saat TTL süpürücüsü → terk edilmiş oturumları sil
-- [ ] `claude_run` entity + her çağrıda kayıt (exit code, stderr son satırları,
+- [x] `<portal-done>` → `interview_session` satırı sil
+- [x] `@Scheduled` 24 saat TTL süpürücüsü → terk edilmiş oturumları sil
+- [x] `claude_run` entity + her çağrıda kayıt (exit code, stderr son satırları,
       süre, sonuç)
-- [ ] 30 günden eski `claude_run` satırlarını temizleyen `@Scheduled` görev
-- [ ] `GET /api/logs` — çağrı geçmişi endpoint'i
-- [ ] Frontend: Loglar sayfası
+- [x] 30 günden eski `claude_run` satırlarını temizleyen `@Scheduled` görev
+- [x] `GET /api/logs` — çağrı geçmişi endpoint'i
+- [x] Frontend: Loglar sayfası
 
 ## M6 — Hata yönetimi ve cilalama
 
-- [ ] `claude` hata/timeout → `ERROR` durumu + `claude_run` log kaydı
-- [ ] Frontend: hata kartı ("claude çağrısı başarısız oldu") + "Tekrar Dene"
-- [ ] "Giriş yapılmamış" durumunda net mesaj
-- [ ] Boş durumlar (proje yok, kök yol geçersiz, doküman yok)
-- [ ] Genel görsel geçiş + responsive kontrol
+- [x] `claude` hata/timeout → `ERROR` durumu + `claude_run` log kaydı
+- [x] Frontend: hata kartı ("claude çağrısı başarısız oldu") + "Tekrar Dene"
+- [x] "Giriş yapılmamış" durumunda net mesaj
+- [x] Boş durumlar (proje yok, kök yol geçersiz, doküman yok)
+- [x] Genel görsel geçiş + responsive kontrol
 
 ## M7 — Paketleme (.app)
 

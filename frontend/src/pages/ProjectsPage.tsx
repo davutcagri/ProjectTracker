@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { apiErrorMessage } from '../api/client'
 import { fetchProjects, scanProjects } from '../api/projects'
-import type { ProjectListItem } from '../api/types'
+import type { InterviewErrorKind, ProjectListItem } from '../api/types'
 import { InterviewWizard } from '../components/InterviewWizard'
 import { ProjectCard } from '../components/ProjectCard'
 import { Button } from '../components/ui/Button'
@@ -30,6 +32,20 @@ export function ProjectsPage() {
   const [scanError, setScanError] = useState<string | null>(null)
   // Kart Sync'i eksik dosya bulup interview başlatınca burası dolar → sihirbaz açılır.
   const [interviewFor, setInterviewFor] = useState<ProjectListItem | null>(null)
+  // Görüşmesi ERROR ile biten projeler → kartta hata satırı. Yalnızca bu oturum
+  // için geçerli (SCOPE persist istemiyor); sayfadan ayrılınca temizlenir.
+  const [interviewErrors, setInterviewErrors] = useState<
+    Map<string, InterviewErrorKind>
+  >(new Map())
+
+  const clearInterviewError = useCallback((id: string) => {
+    setInterviewErrors((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Map(prev)
+      next.delete(id)
+      return next
+    })
+  }, [])
 
   // mode 'initial' → tam sayfa yükleme/hata durumu; 'refresh' → sessiz yenileme.
   const load = useCallback(async (mode: 'initial' | 'refresh') => {
@@ -58,8 +74,11 @@ export function ProjectsPage() {
       if (!refreshed) {
         setScanError('Tarama bitti ama liste yenilenemedi. Sayfayı yenileyin.')
       }
-    } catch {
-      setScanError('Tarama başarısız oldu. Backend :8420 çalışıyor mu?')
+    } catch (err) {
+      setScanError(
+        apiErrorMessage(err) ??
+          'Tarama başarısız oldu. Kök yol geçerli mi ve backend :8420 çalışıyor mu?',
+      )
     } finally {
       setScanning(false)
     }
@@ -113,7 +132,19 @@ export function ProjectsPage() {
         <EmptyState
           icon="inbox"
           title="Henüz proje yok"
-          body="Kök klasörde proje bulunamadı. Klasörleri ekledikten sonra taramayı başlat."
+          body={
+            <>
+              Taranan kök klasörün altında hiç alt klasör bulunamadı. Klasörleri
+              ekledikten sonra taramayı başlat ya da{' '}
+              <Link
+                to="/settings"
+                className="text-accent underline decoration-accent/30 underline-offset-2 hover:text-accent-hover"
+              >
+                Ayarlar'dan kök klasörü
+              </Link>{' '}
+              kontrol et.
+            </>
+          }
           action={
             <Button onClick={handleScan} disabled={scanning}>
               <Icon name="refresh" size={14} spin={scanning} />
@@ -129,8 +160,19 @@ export function ProjectsPage() {
             <ProjectCard
               key={project.id}
               project={project}
-              onInterviewStart={setInterviewFor}
-              onSynced={() => void load('refresh')}
+              interviewError={
+                interviewErrors.has(project.id)
+                  ? { kind: interviewErrors.get(project.id) ?? null }
+                  : null
+              }
+              onInterviewStart={(p) => {
+                clearInterviewError(p.id)
+                setInterviewFor(p)
+              }}
+              onSynced={() => {
+                clearInterviewError(project.id)
+                void load('refresh')
+              }}
             />
           ))}
         </ul>
@@ -140,8 +182,17 @@ export function ProjectsPage() {
         <InterviewWizard
           projectId={interviewFor.id}
           projectName={interviewFor.displayName}
-          onClose={() => setInterviewFor(null)}
-          onCompleted={() => void load('refresh')}
+          onClose={(outcome) => {
+            if (outcome) {
+              const id = interviewFor.id
+              setInterviewErrors((prev) => new Map(prev).set(id, outcome.errorKind))
+            }
+            setInterviewFor(null)
+          }}
+          onCompleted={() => {
+            clearInterviewError(interviewFor.id)
+            void load('refresh')
+          }}
         />
       )}
     </section>

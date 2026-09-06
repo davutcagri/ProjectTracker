@@ -42,6 +42,10 @@
   --color-success-soft: #15271f;
   --color-warning: #e0a34a;
   --color-warning-soft: #2b2114;
+  /* danger = başarısız çağrı (Loglar FAILED rozeti, hata kartı). warning'den
+     ayrı: "uyarı / dikkat" değil, "bu iş çöktü" anlamı taşır. */
+  --color-danger: #e0655f;
+  --color-danger-soft: #2b1616;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, system-ui, sans-serif;

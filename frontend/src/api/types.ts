@@ -111,6 +111,15 @@ export interface InterviewQuestion {
 
 export type InterviewStatus = 'RUNNING' | 'WAITING_INPUT' | 'DONE' | 'ERROR'
 
+/**
+ * Görüşme `ERROR` durumundayken hatanın türü (SCOPE §9, ROADMAP M6 madde 3).
+ * Yalnızca `status === 'ERROR'` iken doludur; diğer durumlarda `null`.
+ * - `NOT_AUTHENTICATED` → yerel `claude` oturumu açık değil.
+ * - `TIMEOUT`           → tek tur 5 dakikayı aştı.
+ * - `GENERIC`           → non-zero exit / bozuk çıktı / diğer.
+ */
+export type InterviewErrorKind = 'NOT_AUTHENTICATED' | 'TIMEOUT' | 'GENERIC' | null
+
 /** Bir cevabı backend'e gönderirken kullanılan biçim (çıplak dizinin elemanı). */
 export interface InterviewAnswer {
   questionId: string
@@ -133,4 +142,33 @@ export interface InterviewStatusResponse {
   startedAt: string
   lastActivityAt: string
   doneSummary: string | null
+  /** Yalnızca `status === 'ERROR'` iken dolu (bkz. InterviewErrorKind). */
+  errorKind: InterviewErrorKind
+}
+
+/* ------------------------------------------------------------------ *
+ * M5 — GET /api/logs gerçek sözleşmesi (backend hazır, canlı test edildi)
+ * ------------------------------------------------------------------ */
+
+export type ClaudeRunOutcome = 'SUCCESS' | 'FAILED'
+
+/**
+ * Tek bir `claude` çağrısının kaydı (Loglar sayfası, SCOPE §7 `claude_run`).
+ * `GET /api/logs` bunların dizisini en yeni `startedAt` üstte olacak şekilde döner.
+ */
+export interface ClaudeRun {
+  id: string
+  projectId: string
+  /** Proje silinmişse `"(silinmiş proje)"` — asla null. */
+  projectDisplayName: string
+  sessionId: string
+  /** ISO-8601 UTC. */
+  startedAt: string
+  /** Çağrının sürdüğü milisaniye. */
+  durationMs: number
+  /** İşletim sistemi çıkış kodu: 0 = başarı, -1 = timeout/exception. */
+  exitCode: number
+  outcome: ClaudeRunOutcome
+  /** Hata çıktısının son satırları; başarılı çağrılarda genelde null. */
+  stderrTail: string | null
 }

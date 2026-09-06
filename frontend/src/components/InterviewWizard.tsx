@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiErrorMessage, apiErrorStatus } from '../api/client'
 import { getInterviewStatus, startInterview, submitAnswers } from '../api/interview'
-import type { InterviewAnswer, InterviewQuestion, InterviewStatusResponse } from '../api/types'
+import type {
+  InterviewAnswer,
+  InterviewErrorKind,
+  InterviewQuestion,
+  InterviewStatusResponse,
+} from '../api/types'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
 import { Modal } from './ui/Modal'
@@ -40,10 +46,46 @@ type Phase = 'thinking' | 'answering' | 'done' | 'error'
 interface InterviewWizardProps {
   projectId: string
   projectName: string
-  /** İptal / kapat — görüşme arka planda kalır, panel kapanır. */
-  onClose: () => void
+  /**
+   * İptal / kapat — görüşme arka planda kalır, panel kapanır.
+   * Görüşme ERROR ile bitmişken kapatılırsa `outcome` dolu gelir; çağıran
+   * bunu ilgili proje kartında hata satırı göstermek için kullanır (SCOPE §9).
+   */
+  onClose: (outcome?: { errorKind: InterviewErrorKind }) => void
   /** Dokümanlar üretildi (DONE) — çağıran listeyi/detayı yeniden çekmeli. */
   onCompleted: () => void
+}
+
+/** ERROR ekranında `errorKind`'e göre başlık + gövde metni (SCOPE §9, M6 madde 3). */
+function errorContent(kind: InterviewErrorKind): {
+  title: string
+  body: React.ReactNode
+} {
+  const code =
+    'rounded bg-sunken px-1 py-0.5 font-mono text-[12px] text-fg'
+  if (kind === 'NOT_AUTHENTICATED') {
+    return {
+      title: "Claude'a giriş yapılmamış",
+      body: (
+        <>
+          ProjectTracker doküman üretmek için yerel <code className={code}>claude</code>{' '}
+          komutunu kullanıyor ama oturum açık değil. Bir terminalde{' '}
+          <code className={code}>claude</code> çalıştırıp giriş yaptıktan sonra
+          &nbsp;“Tekrar dene”ye bas.
+        </>
+      ),
+    }
+  }
+  if (kind === 'TIMEOUT') {
+    return {
+      title: 'Claude 5 dakikada yanıt vermedi',
+      body: 'İşlem zaman aşımına uğradı. “Tekrar dene” ile yeniden başlatabilirsin.',
+    }
+  }
+  return {
+    title: 'claude çağrısı başarısız oldu',
+    body: 'Görüşme tamamlanamadı. Ayrıntılar Loglar sayfasında.',
+  }
 }
 
 export function InterviewWizard({
@@ -60,6 +102,7 @@ export function InterviewWizard({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fatalMessage, setFatalMessage] = useState<string | null>(null)
+  const [errorKind, setErrorKind] = useState<InterviewErrorKind>(null)
   const [retrying, setRetrying] = useState(false)
 
   // Halihazırda sihirbaza yüklenmiş soru turunun "imzası" (id listesi). Aynı tur
@@ -76,7 +119,8 @@ export function InterviewWizard({
         return
       }
       if (res.status === 'ERROR') {
-        setFatalMessage('claude çağrısı başarısız oldu.')
+        setFatalMessage(null)
+        setErrorKind(res.errorKind)
         setPhase('error')
         return
       }
@@ -103,7 +147,8 @@ export function InterviewWizard({
         if (!cancelled) applyStatus(res)
       } catch (err) {
         if (!cancelled && apiErrorStatus(err) === 404) {
-          setFatalMessage('Görüşme oturumu bulunamadı. Yeniden başlatmayı deneyebilirsin.')
+          setFatalMessage('Bu görüşme sona ermiş. Yeniden başlatabilir ya da paneli kapatabilirsin.')
+          setErrorKind(null)
           setPhase('error')
         }
         // Geçici ağ hatası: bir sonraki tur yeniden dener.
@@ -119,7 +164,15 @@ export function InterviewWizard({
   }, [phase, projectId])
 
   function close() {
-    if (phase === 'done') onCompleted()
+    if (phase === 'done') {
+      onCompleted()
+      onClose()
+      return
+    }
+    if (phase === 'error') {
+      onClose({ errorKind: fatalMessage ? null : errorKind })
+      return
+    }
     onClose()
   }
 
@@ -168,6 +221,7 @@ export function InterviewWizard({
   async function handleRetry() {
     setRetrying(true)
     setFatalMessage(null)
+    setErrorKind(null)
     try {
       await startInterview(projectId)
       loadedSigRef.current = null
@@ -288,19 +342,24 @@ export function InterviewWizard({
           <ResultView
             icon="alert"
             tone="warning"
-            title="claude çağrısı başarısız oldu"
-            body={
-              fatalMessage ??
-              'Görüşme tamamlanamadı. Ayrıntılar Loglar sayfasında olacak.'
-            }
+            title={fatalMessage ? 'Görüşme sürdürülemedi' : errorContent(errorKind).title}
+            body={fatalMessage ?? errorContent(errorKind).body}
             action={
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button onClick={() => void handleRetry()} disabled={retrying}>
                   {retrying ? 'Başlatılıyor…' : 'Tekrar dene'}
                 </Button>
                 <Button variant="secondary" onClick={close} disabled={retrying}>
                   Kapat
                 </Button>
+                <Link
+                  to="/logs"
+                  onClick={() => close()}
+                  className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-sunken hover:text-fg"
+                >
+                  Loglar'a bak
+                  <Icon name="arrowRight" size={13} />
+                </Link>
               </div>
             }
           />
@@ -346,7 +405,7 @@ interface ResultViewProps {
   icon: 'check' | 'alert'
   tone: 'success' | 'warning'
   title: string
-  body: string
+  body: React.ReactNode
   action: React.ReactNode
 }
 
