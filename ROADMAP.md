@@ -93,12 +93,12 @@ Milestone'lar bağımlılık sırasına dizilmiştir; yukarıdan aşağıya iler
 
 ## M7 — Paketleme (.app)
 
-- [ ] `jpackage` script'i (`ProjectTracker.app`, gömülü JRE, fat jar)
-- [ ] Uygulama açılışında `Desktop.browse("http://localhost:8420")`
-- [ ] Uygulamadan çıkınca Spring Boot graceful shutdown
-- [ ] Zaten çalışıyorsa ikinci başlatmada yalnızca tarayıcı aç
-- [ ] Kurulum notları (Gatekeeper ilk açılış uyarısı dahil)
-- [ ] `/Applications` veya Dock'a yerleştirme talimatı
+- [x] `jpackage` script'i (`ProjectTracker.app`, gömülü JRE, fat jar)
+- [x] Uygulama açılışında `Desktop.browse("http://localhost:8420")`
+- [x] Uygulamadan çıkınca Spring Boot graceful shutdown
+- [x] Zaten çalışıyorsa ikinci başlatmada yalnızca tarayıcı aç
+- [x] Kurulum notları (Gatekeeper ilk açılış uyarısı dahil)
+- [x] `/Applications` veya Dock'a yerleştirme talimatı
 
 ## M8 — Opsiyonel / v2 adayları
 

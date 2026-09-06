@@ -244,10 +244,21 @@ Boru hattı:
 3. `mvn package` → fat jar (`:8420`, API + SPA tek süreç)
 4. `jpackage` → `ProjectTracker.app` (gömülü JRE + jar)
 
-**Çalışma:** `ProjectTracker.app`'e çift tıkla → tek Java process →
-`Desktop.browse("http://localhost:8420")` ile tarayıcı açılır → uygulamadan çık
-→ Spring Boot graceful shutdown. Terminal gerekmez. Node/npm yalnızca geliştirme
-ve build anında gereklidir, çalışma anında değil.
+**Çalışma:** `ProjectTracker.app`'e çift tıkla → tek Java process → varsayılan
+tarayıcıda `http://localhost:8420` açılır → uygulamadan çık → Spring Boot graceful
+shutdown. Terminal gerekmez. Node/npm yalnızca geliştirme ve build anında
+gereklidir, çalışma anında değil.
+
+**Uygulama notları (M7, 2026-09-06):**
+- Tarayıcı açma `Desktop.browse` yerine macOS `open <url>` komutuyla yapılır.
+  Sebep: Spring Boot `java.awt.headless=true` ayarlıyor, `Desktop` API'si
+  headless modda çalışmıyor; `open` daha sağlam. Sadece paketlenmiş modda
+  (`projecttracker.launch.open-browser=true`) tetiklenir, dev'de açılmaz.
+- Paketlenmiş modda H2 veritabanı `~/Library/Application Support/ProjectTracker/db/mydb`
+  altında (mutlak yol). Dev'de göreli `./data/mydb` değişmedi.
+- İkinci başlatma: 8420 portu doluysa Spring hiç başlamaz, yalnızca tarayıcı açılır.
+- Paketleme script'i: `scripts/package-macos.sh`. Kurulum/çalıştırma detayları:
+  `PACKAGING.md`.
 
 **Geliştirme akışı:** `mvn spring-boot:run` (`:8420`) + `npm run dev` (`:5173`,
 `/api` proxy'li) ayrı çalışır.
