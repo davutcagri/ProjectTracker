@@ -50,3 +50,19 @@ export async function syncProject(id: string): Promise<ProjectDetail> {
 export async function updateProjectNote(id: string, notes: string | null): Promise<void> {
   await api.put(`/projects/${id}/note`, { notes }, { responseType: 'text' })
 }
+
+/**
+ * POST /api/projects/{id}/fix-roadmap — docsStatus ROADMAP_INVALID_FORMAT
+ * iken çağrılır: backend `claude`'u tek turlu (interview akışı yok, --resume
+ * yok) çalıştırıp ROADMAP.md'yi geçerli onay kutusu formatına dönüştürür ve
+ * istek bitene kadar bekletir (dosya düzeldiğinde çağıran taraf Sync'i
+ * tetikleyebilsin diye). Backend'in tek tur zaman aşımı 5 dakika; istemcinin
+ * genel 15sn zaman aşımı (bkz. client.ts) burada yetersiz kalır, bu yüzden
+ * bu çağrıya özel genişletilmiş bir zaman aşımı veriyoruz.
+ */
+export async function fixRoadmap(id: string): Promise<void> {
+  await api.post(`/projects/${id}/fix-roadmap`, null, {
+    responseType: 'text',
+    timeout: 5 * 60_000 + 20_000,
+  })
+}

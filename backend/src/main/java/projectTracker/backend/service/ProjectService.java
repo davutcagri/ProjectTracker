@@ -114,13 +114,12 @@ public class ProjectService {
         Path projectPath = Path.of(project.getPath());
         List<ProjectDocs> docs = projectDocsReader.readInnerFiles(projectPath);
 
-        DocsStatus docsStatus = docs.stream().allMatch(ProjectDocs::exists) ? DocsStatus.COMPLETE : DocsStatus.INCOMPLETE;
-        project.setDocsStatus(docsStatus);
-        projectRepository.save(project);
-
         ProjectDocs roadmap = docs.stream().filter(d -> d.fileName().equals("ROADMAP.md")).findFirst().orElseThrow();
         List<Milestone> milestones = roadmapParser.extractMilestones(roadmap.content());
         int progress = roadmapParser.calculateProgress(roadmap.content());
+
+        project.setDocsStatus(resolveDocsStatus(docs, roadmap, milestones));
+        projectRepository.save(project);
 
         boolean gitRepo = gitService.isGitRepository(projectPath);
         GitInfo gitInfo = gitRepo ? gitService.readGitInfo(projectPath) : null;
@@ -149,6 +148,16 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId).orElseThrow(() -> new NoSuchElementException("Project not found"));
         project.setNotes(request.notes());
         projectRepository.save(project);
+    }
+
+    private DocsStatus resolveDocsStatus(List<ProjectDocs> docs, ProjectDocs roadmap, List<Milestone> milestones) {
+        if (!docs.stream().allMatch(ProjectDocs::exists)) {
+            return DocsStatus.INCOMPLETE;
+        }
+        if (milestones.isEmpty() && roadmap.content() != null && !roadmap.content().isBlank()) {
+            return DocsStatus.ROADMAP_INVALID_FORMAT;
+        }
+        return DocsStatus.COMPLETE;
     }
 }
 

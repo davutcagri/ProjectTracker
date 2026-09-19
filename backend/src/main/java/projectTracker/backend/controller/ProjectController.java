@@ -6,6 +6,7 @@ import projectTracker.backend.dto.request.NotesRequest;
 import projectTracker.backend.dto.response.ProjectDetailedResponse;
 import projectTracker.backend.dto.response.ProjectResponse;
 import projectTracker.backend.service.ProjectService;
+import projectTracker.backend.service.RoadmapFixService;
 import projectTracker.backend.service.RootService;
 
 import java.io.IOException;
@@ -17,10 +18,12 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final RootService rootService;
+    private final RoadmapFixService roadmapFixService;
 
-    public ProjectController(ProjectService projectService, RootService rootService) {
+    public ProjectController(ProjectService projectService, RootService rootService, RoadmapFixService roadmapFixService) {
         this.projectService = projectService;
         this.rootService = rootService;
+        this.roadmapFixService = roadmapFixService;
     }
 
     @PostMapping("/scan")
@@ -48,5 +51,11 @@ public class ProjectController {
     public ResponseEntity<String> updateNotes(@PathVariable String id, @RequestBody NotesRequest request) {
         projectService.updateNotes(id, request);
         return ResponseEntity.ok().body("Note updated successfully.");
+    }
+
+    @PostMapping("/{id}/fix-roadmap")
+    public ResponseEntity<String> fixRoadmap(@PathVariable String id) {
+        roadmapFixService.fixRoadmap(id);
+        return ResponseEntity.ok().body("ROADMAP.md duzeltildi.");
     }
 }

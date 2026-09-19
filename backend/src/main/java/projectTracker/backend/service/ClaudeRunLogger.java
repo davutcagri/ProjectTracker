@@ -22,10 +22,18 @@ public class ClaudeRunLogger {
     }
 
     public void record(InterviewSession session, Instant startedAt, ClaudeExecution execution, boolean success) {
+        record(session.getProjectId(), session.getClaudeSessionId(), startedAt, execution, success);
+    }
+
+    public void recordFailure(InterviewSession session, Instant startedAt, String message) {
+        recordFailure(session.getProjectId(), session.getClaudeSessionId(), startedAt, message);
+    }
+
+    public void record(String projectId, String sessionId, Instant startedAt, ClaudeExecution execution, boolean success) {
         try {
             ClaudeRun run = ClaudeRun.builder()
-                    .projectId(session.getProjectId())
-                    .sessionId(session.getClaudeSessionId())
+                    .projectId(projectId)
+                    .sessionId(sessionId)
                     .startedAt(startedAt)
                     .durationMs(execution.durationMs())
                     .exitCode(execution.exitCode())
@@ -34,15 +42,15 @@ public class ClaudeRunLogger {
                     .build();
             claudeRunRepository.save(run);
         } catch (Exception e) {
-            log.error("claude_run kaydi yazilamadi: session {}", session.getId(), e);
+            log.error("claude_run kaydi yazilamadi: proje {}", projectId, e);
         }
     }
 
-    public void recordFailure(InterviewSession session, Instant startedAt, String message) {
+    public void recordFailure(String projectId, String sessionId, Instant startedAt, String message) {
         try {
             ClaudeRun run = ClaudeRun.builder()
-                    .projectId(session.getProjectId())
-                    .sessionId(session.getClaudeSessionId())
+                    .projectId(projectId)
+                    .sessionId(sessionId)
                     .startedAt(startedAt)
                     .durationMs(Duration.between(startedAt, Instant.now()).toMillis())
                     .exitCode(-1)
@@ -51,7 +59,7 @@ public class ClaudeRunLogger {
                     .build();
             claudeRunRepository.save(run);
         } catch (Exception e) {
-            log.error("claude_run hata kaydi yazilamadi: session {}", session.getId(), e);
+            log.error("claude_run hata kaydi yazilamadi: proje {}", projectId, e);
         }
     }
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiErrorMessage, apiErrorStatus } from '../api/client'
 import { startInterview } from '../api/interview'
-import { syncProject } from '../api/projects'
+import { fixRoadmap, syncProject } from '../api/projects'
 import type {
   InterviewErrorKind,
   ProjectDocFileName,
@@ -25,6 +25,10 @@ import { Icon } from './ui/Icon'
   - POST /api/projects/{id}/sync → dönen detayda README/SCOPE/ROADMAP içerikleri.
   - En az biri eksikse → POST .../interview/start + sihirbaz açılır (onInterviewStart).
   - Hepsi varsa → normal sync; liste tazelenir (onSynced).
+
+  docsStatus ROADMAP_INVALID_FORMAT (dosya var ama hiç milestone/görev
+  ayrıştırılamadı) → rozetin yanında "Düzelt": POST .../fix-roadmap ile
+  claude'u tek turlu çalıştırır, ardından aynı Sync akışını (runSync) tetikler.
 */
 
 const DOC_NAMES: ProjectDocFileName[] = ['README.md', 'SCOPE.md', 'ROADMAP.md']
@@ -33,12 +37,14 @@ const DOCS_LABEL: Record<ProjectDocsStatus, string> = {
   COMPLETE: 'Dokümanlar tam',
   INCOMPLETE: 'Dokümanlar eksik',
   UNKNOWN: 'Henüz taranmadı',
+  ROADMAP_INVALID_FORMAT: 'Format geçersiz',
 }
 
 const DOCS_TONE: Record<ProjectDocsStatus, string> = {
   COMPLETE: 'bg-success-soft text-success',
   INCOMPLETE: 'bg-warning-soft text-warning',
   UNKNOWN: 'bg-sunken text-fg-muted',
+  ROADMAP_INVALID_FORMAT: 'bg-danger-soft text-danger',
 }
 
 const dateShort = new Intl.DateTimeFormat('tr-TR', {
@@ -110,6 +116,7 @@ export function ProjectCard({
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
+  const [fixingRoadmap, setFixingRoadmap] = useState(false)
 
   /** Kart hata satırındaki "Tekrar dene" — SCOPE §9: yeni session başlatır. */
   async function handleRetryInterview(event: React.MouseEvent) {
@@ -136,10 +143,8 @@ export function ProjectCard({
     }
   }
 
-  async function handleSync(event: React.MouseEvent) {
-    event.preventDefault()
-    event.stopPropagation()
-    if (syncing) return
+  /** Sync akışının gövdesi — hem Sync butonu hem "Düzelt" sonrası tarafından paylaşılır. */
+  async function runSync() {
     setSyncing(true)
     setSyncError(null)
     try {
@@ -178,6 +183,34 @@ export function ProjectCard({
     }
   }
 
+  async function handleSync(event: React.MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (syncing || fixingRoadmap) return
+    await runSync()
+  }
+
+  /**
+   * "Düzelt" — docsStatus ROADMAP_INVALID_FORMAT iken görünür. ROADMAP.md'yi
+   * claude ile tek turlu düzeltir, ardından aynı Sync akışını tetikler (dosya
+   * yeniden okunup docsStatus güncellenir).
+   */
+  async function handleFixRoadmap(event: React.MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (fixingRoadmap || syncing) return
+    setFixingRoadmap(true)
+    setSyncError(null)
+    try {
+      await fixRoadmap(project.id)
+      await runSync()
+    } catch (err) {
+      setSyncError(apiErrorMessage(err) ?? 'Format düzeltilemedi.')
+    } finally {
+      setFixingRoadmap(false)
+    }
+  }
+
   return (
     <li className="min-w-0">
       <div className="relative flex h-full min-w-0 flex-col rounded-lg border border-border bg-surface p-4 shadow-card transition duration-150 ease-out hover:-translate-y-0.5 hover:border-fg-subtle/60 hover:shadow-card-hover">
@@ -213,11 +246,24 @@ export function ProjectCard({
 
         <div className="mt-auto border-t border-border pt-3">
           <div className="flex items-center justify-between gap-2">
-            <DocsBadge status={project.docsStatus} />
+            <div className="flex min-w-0 items-center gap-1.5">
+              <DocsBadge status={project.docsStatus} />
+              {project.docsStatus === 'ROADMAP_INVALID_FORMAT' && (
+                <button
+                  type="button"
+                  onClick={handleFixRoadmap}
+                  disabled={fixingRoadmap || syncing}
+                  className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full border border-danger/30 bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger transition-colors hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <Icon name="sparkle" size={12} spin={fixingRoadmap} />
+                  {fixingRoadmap ? 'Düzeltiliyor…' : 'Düzelt'}
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleSync}
-              disabled={syncing}
+              disabled={syncing || fixingRoadmap}
               className="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 text-[12px] font-medium text-fg-muted transition-colors hover:bg-sunken hover:text-fg disabled:cursor-not-allowed disabled:opacity-55"
             >
               <Icon name="refresh" size={13} spin={syncing} />

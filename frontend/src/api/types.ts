@@ -7,7 +7,7 @@
  * M1 — GET /api/projects gerçek sözleşmesi (backend hazır, doğrulandı)
  * ------------------------------------------------------------------ */
 
-export type ProjectDocsStatus = 'UNKNOWN' | 'COMPLETE' | 'INCOMPLETE'
+export type ProjectDocsStatus = 'UNKNOWN' | 'COMPLETE' | 'INCOMPLETE' | 'ROADMAP_INVALID_FORMAT'
 
 /** Liste sayfasındaki bir proje kaydı (GET /api/projects dizisinin elemanı). */
 export interface ProjectListItem {

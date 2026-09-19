@@ -32,6 +32,7 @@ public class ProcessClaudeRunner implements ClaudeRunner {
     private static final String WRITE_HOOK_CLASSPATH = "hooks/restrict-writes.py";
     private static final String WRITE_HOOK_MATCHER = "Write|Edit|MultiEdit";
     private static final String PERMISSION_MODE = "acceptEdits";
+    private static final String SINGLE_TASK_ALLOWED_TOOLS = "Read,Glob,Grep,Write,Edit";
     private static final long TURN_TIMEOUT_MINUTES = 5;
     private static final int STDERR_TAIL_LINES = 20;
 
@@ -74,6 +75,18 @@ public class ProcessClaudeRunner implements ClaudeRunner {
         command.add(agentDefinition());
         command.add("--agent");
         command.add(AGENT_NAME);
+        command.addAll(commonArguments());
+        return execute(projectDir, command);
+    }
+
+    @Override
+    public ClaudeExecution runTask(Path projectDir, String taskPrompt) {
+        List<String> command = new ArrayList<>();
+        command.add(resolveExecutable());
+        command.add("-p");
+        command.add(taskPrompt);
+        command.add("--allowedTools");
+        command.add(SINGLE_TASK_ALLOWED_TOOLS);
         command.addAll(commonArguments());
         return execute(projectDir, command);
     }
